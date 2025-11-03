@@ -15,7 +15,7 @@ response = requests.get(URL)
 weather = response.json()
 
 #temp = weather["main"]["temp"]
-temp = weather["temp"]
+temp = "temp" in weather
 rain = "rain" in weather
 
 #if temp < 0 or rain:
