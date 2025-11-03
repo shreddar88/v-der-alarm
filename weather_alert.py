@@ -17,7 +17,8 @@ URL = f"https://api.openweathermap.org/data/3.0/onecall?lat={LAT}&lon={LON}&excl
 #URL = f"https://api.openweathermap.org/data/2.5/weather?q={CITY}&appid={API_KEY}&units=metric"
 
 response = requests.get(URL)
-weather = response.json()
+data = response.json()
+#weather = response.json()
 
 #temp = weather["main"]["temp"]
 temp = data["current"]["temp"]
