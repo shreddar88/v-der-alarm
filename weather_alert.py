@@ -88,10 +88,10 @@ if alert_forecasts:
         smtp.send_message(msg, from_addr=EMAIL_ADDRESS, to_addrs=recipients)
 
     # Update alert log
-    alerts_today.append(datetime.utcnow().isoformat())
-    alert_log[today_str] = alerts_today
-    with open(ALERT_LOG_FILE, "w") as f:
-        json.dump(alert_log, f)
+    #alerts_today.append(datetime.utcnow().isoformat())
+    #alert_log[today_str] = alerts_today
+    #with open(ALERT_LOG_FILE, "w") as f:
+    #    json.dump(alert_log, f)
 
     print("Varning skickad:\n", alert_msg)
 
