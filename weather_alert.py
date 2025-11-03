@@ -9,33 +9,25 @@ EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 TO_EMAIL = os.getenv("TO_EMAIL")
 
 LAT, LON = 55.6050, 13.0038 # Malmö coordinates
-RAIN_THRESHOLD = 0.3 # 30% chance
+#RAIN_THRESHOLD = 0.3 # 30% chance
 
-URL = f"https://api.openweathermap.org/data/3.0/onecall?lat={LAT}&lon={LON}&exclude=minutely,daily,alerts&units=metric&appid={API_KEY}"
+#URL = f"https://api.openweathermap.org/data/3.0/onecall?lat={LAT}&lon={LON}&exclude=minutely,daily,alerts&units=metric&appid={API_KEY}"
+
+URL = f"https://api.openweathermap.org/data/2.5/weather?lat={LAT}&lon={LON}&appid={API_KEY}&units=metric"
+
 
 #CITY = "Malmo,SE"
 #URL = f"https://api.openweathermap.org/data/2.5/weather?q={CITY}&appid={API_KEY}&units=metric"
 
 response = requests.get(URL)
-data = response.json()
-#weather = response.json()
+weather = response.json()
 
-print("Response keys:", data.keys())
-if "current" not in data:
-    print("ERROR: 'current' data not provided. Full response: ", data)
-    raise SystemExit("Missing 'current' in response")
-#temp = weather["main"]["temp"]
-temp = data["current"]["temp"]
-pop = data["hourly"][0].get("pop", 0) # 0-1
-rain_pct = int(pop * 100)
-alert_needed = temp < 0 or pop >= RAIN_THRESHOLD
-if alert_needed:
-    alert = f"⚠️ Weather Alert for Malmö:\nTemperature: {temp}°C\nChance of rain: {rain_pct}%"
-#rain = "rain" in weather
+
+temp = weather["main"]["temp"]
+rain = "rain" in weather
 #if temp < 0 or rain:
-#if temp < 15 or rain:
-    #alert = f"⚠️ Weather Alert for {CITY}: {temp}°C and rain={rain}"
-    
+if temp < 15 or rain:
+    alert = f"⚠️ Weather Alert for {CITY}: {temp}°C and rain={rain}"
     msg = EmailMessage()
     msg.set_content(alert)
     msg["Subject"] = "Väder varning, snöröjargänget"
@@ -48,5 +40,4 @@ if alert_needed:
         
     print("Alert sent:", alert)
 else:
-    #print("No alert: temperature and rain are normal.")
-    print(f"No alert. Temp: {temp}°C, Rain chance: {rain_pct}%")
+    print("No alert: temperature and rain are normal.")
