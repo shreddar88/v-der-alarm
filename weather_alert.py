@@ -51,48 +51,50 @@ for forecast in data["list"]:
 if alert_forecasts:
     recipients = [email.strip() for email in TO_EMAIL.split(",") if email.strip()]
 
-if len(alert_forecasts) > 1:
-    start_time = alert_forecasts[0][0].strftime('%H:%M')
-    end_time = alert_forecasts[-1][0].strftime('%H:%M')
+    if len(alert_forecasts) > 1:
+        start_time = alert_forecasts[0][0].strftime('%H:%M')
+        end_time = alert_forecasts[-1][0].strftime('%H:%M')
 
-    if any(rain > 0 for _, _, rain in alert_forecasts):
-        header = f"🌧️ Regn förväntas mellan {start_time}–{end_time}\nDetaljer:"
-    elif any(temp < 0 for _, temp, _ in alert_forecasts):
-        header = f"🥶 Kallt väder förväntas mellan {start_time}–{end_time}\nDetaljer:"
+        if any(rain > 0 for _, _, rain in alert_forecasts):
+            header = f"🌧️ Regn förväntas mellan {start_time}–{end_time}\nDetaljer:"
+        elif any(temp < 0 for _, temp, _ in alert_forecasts):
+            header = f"🥶 Kallt väder förväntas mellan {start_time}–{end_time}\nDetaljer:"
+        else:
+            header = f"⚠️ Vädret i Malmö \nDetaljer:"
     else:
-        header = f"⚠️ Vädret i Malmö \nDetaljer:"
-else:
-    forecast_time = alert_forecasts[0][0].strftime('%H:%M')
-    if alert_forecasts[0][2] > 0:
-        header = f"🌧️ Regn förväntas kring {forecast_time}\nDetaljer:"
-    elif alert_forecasts[0][1] < 0:
-        header = f"🥶 Temperaturen sjunker under 0°C kring {forecast_time}\nDetaljer:"
-    else:
-        header = f"⚠️ Vädret i Malmö\nDetaljer:"
+        forecast_time = alert_forecasts[0][0].strftime('%H:%M')
+        if alert_forecasts[0][2] > 0:
+            header = f"🌧️ Regn förväntas kring {forecast_time}\nDetaljer:"
+        elif alert_forecasts[0][1] < 0:
+            header = f"🥶 Temperaturen sjunker under 0°C kring {forecast_time}\nDetaljer:"
+        else:
+            header = f"⚠️ Vädret i Malmö\nDetaljer:"
 
+    # Build messages
     messages = []
     for f_time, temp, rain in alert_forecasts:
         time_label = "Nu" if abs((f_time - (now_utc + CET_OFFSET)).total_seconds()) < 3600 else f_time.strftime('%H:%M')
         rain_msg = f", Regn: {rain} mm" if rain > 0 else ""
         messages.append(f"{time_label} - Temp: {temp:.1f}°C{rain_msg}")
-
     alert_msg = header + "\n" + "\n".join(messages)
 
+    # Send email
     msg = EmailMessage()
     msg.set_content(alert_msg)
     msg["Subject"] = "Vädervarning"
     msg["From"] = EMAIL_ADDRESS
     msg["To"] = ", ".join(recipients)  # display only
-
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
         smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
         smtp.send_message(msg, from_addr=EMAIL_ADDRESS, to_addrs=recipients)
 
+    # Update alert log
     alerts_today.append(datetime.utcnow().isoformat())
     alert_log[today_str] = alerts_today
     with open(ALERT_LOG_FILE, "w") as f:
         json.dump(alert_log, f)
 
     print("Varning skickad:\n", alert_msg)
+
 else:
     print("Ingen regn- eller temperaturvarning för de kommande 3 timmarna.")
