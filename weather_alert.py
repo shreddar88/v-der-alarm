@@ -11,7 +11,7 @@ TO_EMAIL = os.getenv("TO_EMAIL")
 LAT, LON = 55.6050, 13.0038 # Malmö coordinates
 RAIN_THRESHOLD = 0.3 # 30% chance
 
-url = f"https://api.openweathermap.org/data/3.0/onecall?lat={LAT}&lon={LON}&exclude=minutely,daily,alerts&units=metric&appid={API_KEY}"
+URL = f"https://api.openweathermap.org/data/3.0/onecall?lat={LAT}&lon={LON}&exclude=minutely,daily,alerts&units=metric&appid={API_KEY}"
 
 #CITY = "Malmo,SE"
 #URL = f"https://api.openweathermap.org/data/2.5/weather?q={CITY}&appid={API_KEY}&units=metric"
