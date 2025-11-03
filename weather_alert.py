@@ -14,19 +14,18 @@ LAT, LON = 55.593792, 13.024406  # Spånehusvägen 87, Malmö
 CET_OFFSET = timedelta(hours=2)   # UTC+2 (CEST)
 TEMP_THRESHOLD = 10               # Celsius
 RAIN_THRESHOLD = 0                # mm
-ALERT_LOG_FILE = "alert_log.json" # store past alert times
 
-today_str = datetime.utcnow().date().isoformat()
-if os.path.exists(ALERT_LOG_FILE):
-    with open(ALERT_LOG_FILE, "r") as f:
-        alert_log = json.load(f)
-else:
-    alert_log = {}
-
-alerts_today = alert_log.get(today_str, [])
-if len(alerts_today) >= 2:
-    print("Max två varningar redan skickade idag, hoppar över.")
-    exit()
+#ALERT_LOG_FILE = "alert_log.json" # store past alert times
+#today_str = datetime.utcnow().date().isoformat()
+#if os.path.exists(ALERT_LOG_FILE):
+#    with open(ALERT_LOG_FILE, "r") as f:
+#        alert_log = json.load(f)
+#else:
+#    alert_log = {}
+#alerts_today = alert_log.get(today_str, [])
+#if len(alerts_today) >= 2:
+#    print("Max två varningar redan skickade idag, hoppar över.")
+#    exit()
 
 url = f"https://api.openweathermap.org/data/2.5/forecast?lat={LAT}&lon={LON}&units=metric&appid={API_KEY}"
 response = requests.get(url)
