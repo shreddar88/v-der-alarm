@@ -12,7 +12,7 @@ TO_EMAIL = os.getenv("TO_EMAIL")  # comma-separated emails
 
 LAT, LON = 55.593792, 13.024406  # Spånehusvägen 87, Malmö
 CET_OFFSET = timedelta(hours=2)   # UTC+2 (CEST)
-TEMP_THRESHOLD = 20               # Celsius
+TEMP_THRESHOLD = 10               # Celsius
 RAIN_THRESHOLD = 0                # mm
 ALERT_LOG_FILE = "alert_log.json" # store past alert times
 
