@@ -39,8 +39,7 @@ for forecast in data["list"]:
 
 if alert_needed:
     local_time = alert_time + timedelta(hours=2)  # convert UTC to CET
-    alert_msg = f"⚠️ Temperatur i Malmö:\nTemperature: {alert_temp}°C\nRegn förväntas kl: {local_time.strftime('%H:%M')}
-    ⚠️ {temp}°C och sannolikhet för regn={rain}"
+    alert_msg = f"⚠️ Temperatur i Malmö:\nTemperature: {alert_temp}°C\nRegn förväntas kl: {local_time.strftime('%H:%M')}"
     msg = EmailMessage()
     msg.set_content(alert_msg)
     msg["Subject"] = "Väder varning, snöröjargänget"
