@@ -33,7 +33,8 @@ for forecast in data["list"]:
 
     temp = forecast["main"]["temp"]
     rain = forecast.get("rain", {}).get("3h", 0)
-    if temp < 0 or rain > 0:
+    #if temp < 0 or rain > 0:
+    if temp < 20 or rain > 0:
         # Convert to Malmö local time
         forecast_time_local = forecast_time_utc + CET_OFFSET
         rain_forecasts.append((forecast_time_local, temp, rain))
@@ -46,11 +47,11 @@ if rain_forecasts:
         rain_msg = f", Rain: {rain} mm" if rain > 0 else ""
         messages.append(f"{f_time.strftime('%H:%M')} - Temp: {temp}°C{rain_msg}")
     
-    alert_msg = f"⚠️ Weather Alert for Malmö (next 3 hours)\nTime range: {start_time}–{end_time}\nDetails:\n" + "\n".join(messages)
+    alert_msg = f"⚠️ Vädret i Malmö (nästkommande 3h)\nMellan: {start_time}–{end_time}\Detaljer:\n" + "\n".join(messages)
 
     msg = EmailMessage()
     msg.set_content(alert_msg)
-    msg["Subject"] = "Weather Alert"
+    msg["Subject"] = "Väder varning, snöröjargänget"
     msg["From"] = EMAIL_ADDRESS
     msg["To"] = TO_EMAIL
 
