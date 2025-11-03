@@ -16,7 +16,9 @@ URL = f"https://api.openweathermap.org/data/2.5/weather?lat={LAT}&lon={LON}&appi
 
 response = requests.get(URL)
 data = response.json()
-    
+if "list" not in data:
+    print("Error fetching forecast:", data)
+    raise SystemExit("Missing forecast data (check API key or request)")    
 alert_needed = False
 alert_time = None
 alert_temp = None
@@ -38,7 +40,6 @@ for forecast in data["list"]:
 if alert_needed:
     local_time = alert_time + timedelta(hours=2)  # convert UTC to CET
     alert_msg = f"⚠️ Weather Alert for Malmö:\nTemperature: {alert_temp}°C\nRain expected at: {local_time.strftime('%H:%M')}"
-    
     msg = EmailMessage()
     msg.set_content(alert_msg)
     msg["Subject"] = "Weather Alert"
