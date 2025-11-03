@@ -20,6 +20,10 @@ response = requests.get(URL)
 data = response.json()
 #weather = response.json()
 
+print("Response keys:", data.keys())
+if "current" not in data:
+    print("ERROR: 'current' data not provided. Full response: ", data)
+    raise SystemExit("Missing 'current' in response")
 #temp = weather["main"]["temp"]
 temp = data["current"]["temp"]
 pop = data["hourly"][0].get("pop", 0) # 0-1
