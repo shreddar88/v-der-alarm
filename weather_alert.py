@@ -25,7 +25,7 @@ pop = data["hourly"][0].get("pop", 0) # 0-1
 rain_pct = int(pop * 100)
 alert_needed = temp < 0 or pop >= RAIN_THRESHOLD
 if alert_needed:
-alert = f"⚠️ Weather Alert for Malmö:\nTemperature: {temp}°C\nChance of rain: {rain_pct}%"
+    alert = f"⚠️ Weather Alert for Malmö:\nTemperature: {temp}°C\nChance of rain: {rain_pct}%"
 #rain = "rain" in weather
 #if temp < 0 or rain:
 #if temp < 15 or rain:
