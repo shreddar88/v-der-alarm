@@ -51,12 +51,24 @@ for forecast in data["list"]:
 if alert_forecasts:
     recipients = [email.strip() for email in TO_EMAIL.split(",") if email.strip()]
 
-    if len(alert_forecasts) > 1:
-        start_time = alert_forecasts[0][0].strftime('%H:%M')
-        end_time = alert_forecasts[-1][0].strftime('%H:%M')
-        header = f"⚠️ Vädret i Malmö (nästkommande 3h)\nMellan: {start_time}–{end_time}\nDetaljer:"
+if len(alert_forecasts) > 1:
+    start_time = alert_forecasts[0][0].strftime('%H:%M')
+    end_time = alert_forecasts[-1][0].strftime('%H:%M')
+
+    if any(rain > 0 for _, _, rain in alert_forecasts):
+        header = f"🌧️ Regn förväntas mellan {start_time}–{end_time}\nDetaljer:"
+    elif any(temp < 0 for _, temp, _ in alert_forecasts):
+        header = f"🥶 Kallt väder förväntas mellan {start_time}–{end_time}\nDetaljer:"
     else:
-        header = "⚠️ Vädret i Malmö (nästkommande 3h)\nDetaljer:"
+        header = f"⚠️ Vädret i Malmö \nDetaljer:"
+else:
+    forecast_time = alert_forecasts[0][0].strftime('%H:%M')
+    if alert_forecasts[0][2] > 0:
+        header = f"🌧️ Regn förväntas kring {forecast_time}\nDetaljer:"
+    elif alert_forecasts[0][1] < 0:
+        header = f"🥶 Temperaturen sjunker under 0°C kring {forecast_time}\nDetaljer:"
+    else:
+        header = f"⚠️ Vädret i Malmö\nDetaljer:"
 
     messages = []
     for f_time, temp, rain in alert_forecasts:
