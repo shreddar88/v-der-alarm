@@ -14,17 +14,17 @@ URL = f"https://api.openweathermap.org/data/2.5/weather?q={CITY}&appid={API_KEY}
 response = requests.get(URL)
 weather = response.json()
 
-#temp = weather["main"]["temp"]
-temp = "temp" in weather
+temp = weather["main"]["temp"]
+#temp = "temp" in weather
 rain = "rain" in weather
 
-#if temp < 0 or rain:
-if temp < 15 or rain:
+if temp < 0 or rain:
+#if temp < 15 or rain:
     alert = f"⚠️ Weather Alert for {CITY}: {temp}°C and rain={rain}"
     
     msg = EmailMessage()
     msg.set_content(alert)
-    msg["Subject"] = "Weather Alert"
+    msg["Subject"] = "Väder varning, snöröjargänget"
     msg["From"] = EMAIL_ADDRESS
     msg["To"] = TO_EMAIL
     
