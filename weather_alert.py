@@ -3,9 +3,9 @@ import requests
 import smtplib
 from email.message import EmailMessage
 
-API_KEY = os.getenv("076814283aaedd338f506cf4f0182fa8")
-EMAIL_ADDRESS = os.getenv("shreddar88@gmail.com")
-EMAIL_PASSWORD = os.getenv("nxnn zmhv zsir mvdh")
+API_KEY = os.getenv("OPENWEATHER_API_KEY")
+EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 TO_EMAIL = os.getenv("shreddar88@gmail.com")
 
 CITY = "Malmo,SE"
