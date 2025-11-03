@@ -14,7 +14,8 @@ URL = f"https://api.openweathermap.org/data/2.5/weather?q={CITY}&appid={API_KEY}
 response = requests.get(URL)
 weather = response.json()
 
-temp = weather["main"]["temp"]
+#temp = weather["main"]["temp"]
+temp = weather["temp"]
 rain = "rain" in weather
 
 #if temp < 0 or rain:
