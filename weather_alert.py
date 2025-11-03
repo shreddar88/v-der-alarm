@@ -14,13 +14,13 @@ TO_EMAIL = os.getenv("TO_EMAIL")  # comma-separated emails
 LAT, LON = 55.593792, 13.024406
 
 # Malmö timezone offset (CET/CEST)
-CET_OFFSET = timedelta(hours=2)  # UTC+2
+CET_OFFSET = timedelta(hours=2)  # UTC+2 in summer
 
-# Thresholds for alert
-TEMP_THRESHOLD = 20  # Celsius, adjust as needed
-RAIN_THRESHOLD = 0   # mm
+# Thresholds
+TEMP_THRESHOLD = 20
+RAIN_THRESHOLD = 0
 
-# Fetch forecast (5-day / 3-hour)
+# Fetch 5-day / 3-hour forecast
 url = f"https://api.openweathermap.org/data/2.5/forecast?lat={LAT}&lon={LON}&units=metric&appid={API_KEY}"
 response = requests.get(url)
 data = response.json()
@@ -32,7 +32,7 @@ if "list" not in data:
 now_utc = datetime.utcnow()
 alert_forecasts = []
 
-# Check forecasts within next 3 hours
+# Check next 3 hours
 for forecast in data["list"]:
     forecast_time_utc = datetime.utcfromtimestamp(forecast["dt"])
     if forecast_time_utc > now_utc + timedelta(hours=3):
@@ -60,8 +60,10 @@ if alert_forecasts:
     # Build forecast lines
     messages = []
     for f_time, temp, rain in alert_forecasts:
+        # Show "Nu" if it's the current hour
+        time_label = "Nu" if abs((f_time - (now_utc + CET_OFFSET)).total_seconds()) < 3600 else f_time.strftime('%H:%M')
         rain_msg = f", Regn: {rain} mm" if rain > 0 else ""
-        messages.append(f"{f_time.strftime('%H:%M')} - Temp: {temp:.1f}°C{rain_msg}")
+        messages.append(f"{time_label} - Temp: {temp:.1f}°C{rain_msg}")
 
     alert_msg = header + "\n" + "\n".join(messages)
 
@@ -70,12 +72,12 @@ if alert_forecasts:
     msg.set_content(alert_msg)
     msg["Subject"] = "Vädervarning"
     msg["From"] = EMAIL_ADDRESS
-    msg["To"] = ", ".join(recipients)
+    msg["To"] = ", ".join(recipients)  # only for display
 
     # Send email
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
         smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-        smtp.send_message(msg)
+        smtp.send_message(msg, from_addr=EMAIL_ADDRESS, to_addrs=recipients)
 
     print("Varning skickad:\n", alert_msg)
 else:
