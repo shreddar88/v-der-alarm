@@ -27,7 +27,7 @@ temp = weather["main"]["temp"]
 rain = "rain" in weather
 #if temp < 0 or rain:
 if temp < 15 or rain:
-    alert = f"⚠️ Weather Alert for {CITY}: {temp}°C and rain={rain}"
+    alert = f"⚠️ Weather Alert for Malmoe: {temp}°C and rain={rain}"
     msg = EmailMessage()
     msg.set_content(alert)
     msg["Subject"] = "Väder varning, snöröjargänget"
