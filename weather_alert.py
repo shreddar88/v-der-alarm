@@ -14,7 +14,7 @@ URL = f"https://api.openweathermap.org/data/2.5/weather?lat={LAT}&lon={LON}&appi
 #URL = f"https://api.openweathermap.org/data/2.5/weather?q={CITY}&appid={API_KEY}&units=metric"
 
 response = requests.get(URL)
-data = response.json(
+data = response.json()
     
 alert_needed = False
 alert_time = None
