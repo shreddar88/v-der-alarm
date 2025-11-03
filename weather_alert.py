@@ -2,25 +2,36 @@ import os
 import requests
 import smtplib
 from email.message import EmailMessage
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
-# Environment variables
+# ======================
+# CONFIGURATION
+# ======================
 API_KEY = os.getenv("OPENWEATHER_API_KEY")
 EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 TO_EMAIL = os.getenv("TO_EMAIL")  # comma-separated emails
 
-# Malmö coordinates
-LAT, LON = 55.593792, 13.024406
+LAT, LON = 55.593792, 13.024406  # Spånehusvägen 87, Malmö
+CET_OFFSET = timedelta(hours=2)   # UTC+2 (CEST in summer)
+TEMP_THRESHOLD = 20               # Celsius
+RAIN_THRESHOLD = 0                # mm
+ALERT_FILE = "last_alert.txt"     # file to store last alert date
 
-# Malmö timezone offset (CET/CEST)
-CET_OFFSET = timedelta(hours=2)  # UTC+2 in summer
+# ======================
+# CHECK IF ALERT ALREADY SENT TODAY
+# ======================
+today_str = date.today().isoformat()
+if os.path.exists(ALERT_FILE):
+    with open(ALERT_FILE, "r") as f:
+        last_date = f.read().strip()
+    if last_date == today_str:
+        print("Varning redan skickad idag, hoppar över.")
+        exit()
 
-# Thresholds
-TEMP_THRESHOLD = 20
-RAIN_THRESHOLD = 0
-
-# Fetch 5-day / 3-hour forecast
+# ======================
+# FETCH FORECAST
+# ======================
 url = f"https://api.openweathermap.org/data/2.5/forecast?lat={LAT}&lon={LON}&units=metric&appid={API_KEY}"
 response = requests.get(url)
 data = response.json()
@@ -32,7 +43,9 @@ if "list" not in data:
 now_utc = datetime.utcnow()
 alert_forecasts = []
 
-# Check next 3 hours
+# ======================
+# CHECK NEXT 3 HOURS
+# ======================
 for forecast in data["list"]:
     forecast_time_utc = datetime.utcfromtimestamp(forecast["dt"])
     if forecast_time_utc > now_utc + timedelta(hours=3):
@@ -45,9 +58,12 @@ for forecast in data["list"]:
         forecast_time_local = forecast_time_utc + CET_OFFSET
         alert_forecasts.append((forecast_time_local, temp, rain))
 
+# ======================
+# SEND ALERT IF ANY
+# ======================
 if alert_forecasts:
-    # Multi-recipient support
-    recipients = [email.strip() for email in TO_EMAIL.split(",")]
+    # Prepare recipients
+    recipients = [email.strip() for email in TO_EMAIL.split(",") if email.strip()]
 
     # Build message header
     if len(alert_forecasts) > 1:
@@ -72,12 +88,16 @@ if alert_forecasts:
     msg.set_content(alert_msg)
     msg["Subject"] = "Vädervarning"
     msg["From"] = EMAIL_ADDRESS
-    msg["To"] = ", ".join(recipients)  # only for display
+    msg["To"] = ", ".join(recipients)  # display only
 
     # Send email
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
         smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
         smtp.send_message(msg, from_addr=EMAIL_ADDRESS, to_addrs=recipients)
+
+    # Save today's date
+    with open(ALERT_FILE, "w") as f:
+        f.write(today_str)
 
     print("Varning skickad:\n", alert_msg)
 else:
