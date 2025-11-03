@@ -17,9 +17,7 @@ URL = f"https://api.openweathermap.org/data/2.5/forecast?lat={LAT}&lon={LON}&uni
 
 response = requests.get(URL)
 data = response.json()
-if "list" not in data:
-    print("Error fetching forecast:", data)
-    raise SystemExit("Missing forecast data (check API key or request)")    
+
 alert_needed = False
 alert_time = None
 alert_temp = None
@@ -32,7 +30,8 @@ for forecast in data["list"]:
         break
     rain = forecast.get("rain", {}).get("3h", 0)
     temp = forecast["main"]["temp"]
-    if temp < 0 or rain > 0:
+    #if temp < 0 or rain > 0:
+    if temp < 20 or rain > 0:
         alert_needed = True
         alert_time = forecast_time
         alert_temp = temp
@@ -40,10 +39,11 @@ for forecast in data["list"]:
 
 if alert_needed:
     local_time = alert_time + timedelta(hours=2)  # convert UTC to CET
-    alert_msg = f"⚠️ Weather Alert for Malmö:\nTemperature: {alert_temp}°C\nRain expected at: {local_time.strftime('%H:%M')}"
+    alert_msg = f"⚠️ Temperatur i Malmö:\nTemperature: {alert_temp}°C\nRegn förväntas kl: {local_time.strftime('%H:%M')}
+    ⚠️ {temp}°C och sannolikhet för regn={rain}"
     msg = EmailMessage()
     msg.set_content(alert_msg)
-    msg["Subject"] = "Weather Alert"
+    msg["Subject"] = "Väder varning, snöröjargänget"
     msg["From"] = EMAIL_ADDRESS
     msg["To"] = TO_EMAIL
     
