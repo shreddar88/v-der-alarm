@@ -3,10 +3,10 @@ import requests
 import smtplib
 from email.message import EmailMessage
 
-API_KEY = os.getenv("OPENWEATHER_API_KEY")
-EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
-TO_EMAIL = os.getenv("shreddar88@gmail.com")
+API_KEY = os.getenv("secrets.OPENWEATHER_API_KEY")
+EMAIL_ADDRESS = os.getenv("secrets.EMAIL_ADDRESS")
+EMAIL_PASSWORD = os.getenv("secrets.EMAIL_PASSWORD")
+TO_EMAIL = os.getenv("secrets.EMAIL_ADRESS")
 
 CITY = "Malmo,SE"
 URL = f"https://api.openweathermap.org/data/2.5/weather?q={CITY}&appid={API_KEY}&units=metric"
