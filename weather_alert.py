@@ -92,4 +92,4 @@ with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
 
 print("Varning skickad:\n", alert_msg)
 else:
-print("Ingen regn- eller temperaturvarning för de kommande 3 timmarna.")
+    print("Ingen regn- eller temperaturvarning för de kommande 3 timmarna.")
