@@ -30,7 +30,7 @@ jobs:
           EMAIL_USER: ${{ secrets.EMAIL_ADRESS }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           RECIPIENTS: ${{ secrets.TO_EMAIL }}
-        run: python notifier.py
+        run: python smhi.py
 
     #  - name: Save alert history
     #    uses: actions/cache@v4
