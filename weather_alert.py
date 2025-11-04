@@ -33,9 +33,11 @@ data = response.json()
 now_utc = datetime.utcnow()
 alert_forecasts = []
 
-# CHECK NEXT 3 HOURS
+# CHECK NEXT 1-3 HOURS
 for forecast in data["list"]:
     forecast_time_utc = datetime.utcfromtimestamp(forecast["dt"])
+    if forecast_time_utc > now_utc + timedelta(hours=1):
+        continue  
     if forecast_time_utc > now_utc + timedelta(hours=3):
         break
     temp = forecast["main"]["temp"]
