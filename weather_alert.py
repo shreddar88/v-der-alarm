@@ -15,85 +15,81 @@ CET_OFFSET = timedelta(hours=2)   # UTC+2 (CEST)
 TEMP_THRESHOLD = 20               # Celsius
 RAIN_THRESHOLD = 0                # mm
 
-#ALERT_LOG_FILE = "alert_log.json" # store past alert times
-#today_str = datetime.utcnow().date().isoformat()
-#if os.path.exists(ALERT_LOG_FILE):
-#    with open(ALERT_LOG_FILE, "r") as f:
-#        alert_log = json.load(f)
-#else:
-#    alert_log = {}
-#alerts_today = alert_log.get(today_str, [])
-#if len(alerts_today) >= 2:
-#    print("Max två varningar redan skickade idag, hoppar över.")
-#    exit()
+# ALERT_LOG_FILE = "alert_log.json" # store past alert times
+# today_str = datetime.utcnow().date().isoformat()
+# if os.path.exists(ALERT_LOG_FILE):
+# with open(ALERT_LOG_FILE, "r") as f:
+# alert_log = json.load(f)
+# else:
+# alert_log = {}
+# alerts_today = alert_log.get(today_str, [])
+# if len(alerts_today) >= 2:
+# print("Max två varningar redan skickade idag, hoppar över.")
+# exit()
 
-url = f"https://api.openweathermap.org/data/2.5/forecast?lat={LAT}&lon={LON}&units=metric&appid={API_KEY}"
+url = f"[https://api.openweathermap.org/data/2.5/forecast?lat={LAT}&lon={LON}&units=metric&appid={API_KEY}](https://api.openweathermap.org/data/2.5/forecast?lat={LAT}&lon={LON}&units=metric&appid={API_KEY})"
 response = requests.get(url)
 data = response.json()
 now_utc = datetime.utcnow()
 alert_forecasts = []
 
-# CHECK NEXT 3 HOURS
 for forecast in data["list"]:
-    forecast_time_utc = datetime.utcfromtimestamp(forecast["dt"])
-    if forecast_time_utc > now_utc + timedelta(hours=3):
-        break
+forecast_time_utc = datetime.utcfromtimestamp(forecast["dt"])
+if forecast_time_utc > now_utc + timedelta(hours=3):
+break
 
-    temp = forecast["main"]["temp"]
-    rain = forecast.get("rain", {}).get("3h", 0)
+temp = forecast["main"]["temp"]
+rain = forecast.get("rain", {}).get("3h", 0)
 
-    if temp < TEMP_THRESHOLD or rain > RAIN_THRESHOLD:
-        forecast_time_local = forecast_time_utc + CET_OFFSET
-        alert_forecasts.append((forecast_time_local, temp, rain))
+if temp < TEMP_THRESHOLD or rain > RAIN_THRESHOLD:
+    forecast_time_local = forecast_time_utc + CET_OFFSET
+    alert_forecasts.append((forecast_time_local, temp, rain))
 
 # SEND ALERT IF ANY
 if alert_forecasts:
-    recipients = [email.strip() for email in TO_EMAIL.split(",") if email.strip()]
+recipients = [email.strip() for email in TO_EMAIL.split(",") if email.strip()]
 
-    if len(alert_forecasts) > 1:
-        start_time = alert_forecasts[0][0].strftime('%H:%M')
-        end_time = alert_forecasts[-1][0].strftime('%H:%M')
-
-        if any(rain > 0 for _, _, rain in alert_forecasts):
-            header = f"🌧️ Regn förväntas mellan {start_time}–{end_time}\nDetaljer:"
-        elif any(temp < 20 for _, temp, _ in alert_forecasts):
-            header = f"🥶 Kallt väder förväntas mellan {start_time}–{end_time}\nDetaljer:"
-        else:
-            header = f"⚠️ Vädret i Malmö \nDetaljer:"
-    else:
-        forecast_time = alert_forecasts[0][0].strftime('%H:%M')
-        if alert_forecasts[0][2] > 0:
-            header = f"🌧️ Regn förväntas kring {forecast_time}\nDetaljer:"
-        elif alert_forecasts[0][1] < 0:
-            header = f"🥶 Temperaturen sjunker under 0°C kring {forecast_time}\nDetaljer:"
-        else:
-            header = f"⚠️ Vädret i Malmö\nDetaljer:"
-
-    # Build messages
-    messages = []
-    for f_time, temp, rain in alert_forecasts:
-        time_label = "Nu" if abs((f_time - (now_utc + CET_OFFSET)).total_seconds()) < 3600 else f_time.strftime('%H:%M')
-        rain_msg = f", Regn: {rain} mm" if rain > 0 else ""
-        messages.append(f"{time_label} - Temp: {temp:.1f}°C{rain_msg}")
-    alert_msg = header + "\n" + "\n".join(messages)
-
-    # Send email
-    msg = EmailMessage()
-    msg.set_content(alert_msg)
-    msg["Subject"] = "Vädervarning"
-    msg["From"] = EMAIL_ADDRESS
-    msg["To"] = ", ".join(recipients)  # display only
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
-        smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-        smtp.send_message(msg, from_addr=EMAIL_ADDRESS, to_addrs=recipients)
-
-    # Update alert log
-    #alerts_today.append(datetime.utcnow().isoformat())
-    #alert_log[today_str] = alerts_today
-    #with open(ALERT_LOG_FILE, "w") as f:
-    #    json.dump(alert_log, f)
-
-    print("Varning skickad:\n", alert_msg)
-
+# Determine time range
+if len(alert_forecasts) > 1:
+    start_time = alert_forecasts[0][0].strftime('%H:%M')
+    end_time = alert_forecasts[-1][0].strftime('%H:%M')
+    time_range = f"mellan {start_time}–{end_time}"
 else:
-    print("Ingen regn- eller temperaturvarning för de kommande 3 timmarna.")
+    forecast_time = alert_forecasts[0][0].strftime('%H:%M')
+    time_range = f"kring {forecast_time}"
+
+# Determine weather type
+if any(rain > RAIN_THRESHOLD for _, _, rain in alert_forecasts):
+    header = f"🌧️ Regn förväntas {time_range}\nDetaljer:"
+elif any(temp < TEMP_THRESHOLD for _, temp, _ in alert_forecasts):
+    header = f"🥶 Kallt väder förväntas {time_range}\nDetaljer:"
+else:
+    header = f"⚠️ Vädret i Malmö {time_range}\nDetaljer:"
+
+# Build messages
+messages = []
+for f_time, temp, rain in alert_forecasts:
+    time_label = "Nu" if abs((f_time - (now_utc + CET_OFFSET)).total_seconds()) < 3600 else f_time.strftime('%H:%M')
+    rain_msg = f", Regn: {rain} mm" if rain > 0 else ""
+    messages.append(f"{time_label} - Temp: {temp:.1f}°C{rain_msg}")
+alert_msg = header + "\n" + "\n".join(messages)
+
+# Send email
+msg = EmailMessage()
+msg.set_content(alert_msg)
+msg["Subject"] = "Vädervarning"
+msg["From"] = EMAIL_ADDRESS
+msg["To"] = ", ".join(recipients)  # display only
+with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+    smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+    smtp.send_message(msg, from_addr=EMAIL_ADDRESS, to_addrs=recipients)
+
+# Update alert log
+# alerts_today.append(datetime.utcnow().isoformat())
+# alert_log[today_str] = alerts_today
+# with open(ALERT_LOG_FILE, "w") as f:
+#     json.dump(alert_log, f)
+
+print("Varning skickad:\n", alert_msg)
+else:
+print("Ingen regn- eller temperaturvarning för de kommande 3 timmarna.")
