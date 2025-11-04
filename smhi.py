@@ -57,7 +57,7 @@ if heavy_snow_msg:
 for date_key in sorted(alerts_by_date.keys()):
     flat_alerts.append(date_key)
     flat_alerts.extend(alerts_by_date[date_key])
-# ---- Avoid repeat alerts ----
+# ---- Avoid repeat alerts ----Av kommentera uppåt och i .yml filen
 #alert_hash = hashlib.sha256("\n".join(all_alerts_list).encode()).hexdigest()
 #if LAST_ALERT_FILE.exists() and LAST_ALERT_FILE.read_text().strip() == alert_hash:
 #    print("Inga nya varningar — skippar e-post.")
