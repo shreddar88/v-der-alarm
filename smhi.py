@@ -61,7 +61,7 @@ for period in data.get("timeSeries", []):
             alerts.append(f"{time_str}:🌧️ Regn {pmean:.1f} mm/h")
 # Heavy snow threshold check
 if snow_total_mm >= SNOW_THRESHOLD:
-    alerts.append(f"Kraftigt snöfall väntas: {snow_total_mm:.1f} mm under {ALERT_HOURS}h")
+    alerts.append(f"❄️❄️❄️Kraftigt snöfall väntas: {snow_total_mm:.1f} mm under {ALERT_HOURS}h")
 
 # ---- Avoid repeat alerts ----
 #alerts_sorted = sorted(alerts)
