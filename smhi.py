@@ -81,11 +81,11 @@ for date_key in sorted(alerts_by_date.keys()):
     all_alerts_list.extend(alerts_by_date[date_key])
 
 # ---- Avoid repeat alerts ----
-alert_hash = hashlib.sha256("\n".join(all_alerts_list).encode()).hexdigest()
-if LAST_ALERT_FILE.exists() and LAST_ALERT_FILE.read_text().strip() == alert_hash:
-    print("Inga nya varningar — skippar e-post.")
-    exit(0)
-LAST_ALERT_FILE.write_text(alert_hash)
+#alert_hash = hashlib.sha256("\n".join(all_alerts_list).encode()).hexdigest()
+#if LAST_ALERT_FILE.exists() and LAST_ALERT_FILE.read_text().strip() == alert_hash:
+#    print("Inga nya varningar — skippar e-post.")
+#    exit(0)
+#LAST_ALERT_FILE.write_text(alert_hash)
 
 # ---- Send email ----
 if alerts_by_date:
