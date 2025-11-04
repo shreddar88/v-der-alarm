@@ -3,6 +3,7 @@ import requests
 from datetime import datetime, timedelta, timezone
 import smtplib
 from email.mime.text import MIMEText
+from email.message import EmailMessage
 import hashlib
 import pathlib
 
@@ -67,14 +68,25 @@ if snow_total_mm >= HEAVY_SNOW_THRESHOLD:
 # ---- Send email if alerts exist ----
 if alerts:
     RECIPIENTS = [email.strip() for email in TO_EMAIL.split(",") if email.strip()]
+    msg = EmailMessage()
     body = "Weather alerts for your location:\n\n" + "\n".join(alerts)
-    msg = MIMEText(body)
-    msg["Subject"] = "Snow/Rain Alert 🚨"
+    msg.set_content(body)
+    msg["Subject"] = "Vädervarning"
     msg["From"] = EMAIL_ADDRESS
     msg["To"] = ", ".join(RECIPIENTS)
-    with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
-        server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-        server.sendmail(EMAIL_ADDRESS, RECIPIENTS, msg.as_string())
-    print("Email sent with alerts.")
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+        smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+        smtp.send_message(msg, from_addr=EMAIL_ADDRESS, to_addrs=RECIPIENTS)
+    print("Varning skickad:\n", alert_msg)
+
+   # body = "Weather alerts for your location:\n\n" + "\n".join(alerts)
+   # msg = MIMEText(body)
+   # msg["Subject"] = "Snow/Rain Alert 🚨"
+   # msg["From"] = EMAIL_ADDRESS
+   # msg["To"] = ", ".join(RECIPIENTS)
+   # with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
+   #     server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+   #     server.sendmail(EMAIL_ADDRESS, RECIPIENTS, msg.as_string())
+   # print("Email sent with alerts.")
 else:
     print("No alerts in next forecast window.")
