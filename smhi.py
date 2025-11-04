@@ -9,7 +9,7 @@ from collections import defaultdict
 # ----- CONFIG -----
 LAT = 55.593792
 LON = 13.024406
-TEMP_THRESHOLD = 20.0          # °C, below triggers alert
+TEMP_THRESHOLD = 10.0          # °C, below triggers alert
 REGN_THRESHOLD = 0.0        # mm/h threshold for rain/snow alerts
 SNOW_THRESHOLD = 20.0   # mm in ALERT_HOURS total
 ALERT_HOURS = 12               # forecast window
