@@ -34,7 +34,7 @@ now_utc = datetime.utcnow()
 alert_forecasts = []
 
 for forecast in data["list"]:
-forecast_time_utc = datetime.utcfromtimestamp(forecast["dt"])
+    forecast_time_utc = datetime.utcfromtimestamp(forecast["dt"])
 if forecast_time_utc > now_utc + timedelta(hours=3):
 break
 
