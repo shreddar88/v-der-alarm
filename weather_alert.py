@@ -56,7 +56,7 @@ if alert_forecasts:
 
         if any(rain > 0 for _, _, rain in alert_forecasts):
             header = f"🌧️ Regn förväntas mellan {start_time}–{end_time}\nDetaljer:"
-        elif any(temp < 0 for _, temp, _ in alert_forecasts):
+        elif any(temp < 20 for _, temp, _ in alert_forecasts):
             header = f"🥶 Kallt väder förväntas mellan {start_time}–{end_time}\nDetaljer:"
         else:
             header = f"⚠️ Vädret i Malmö \nDetaljer:"
