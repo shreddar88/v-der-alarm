@@ -9,7 +9,7 @@ from collections import defaultdict
 # ----- CONFIG -----
 LAT = 55.593792
 LON = 13.024406
-TEMP_THRESHOLD = 10.0          # °C, below triggers alert
+TEMP_THRESHOLD = 20.0          # °C, below triggers alert
 REGN_THRESHOLD = 0.0        # mm/h threshold for rain/snow alerts
 SNOW_THRESHOLD = 20.0   # mm in ALERT_HOURS total
 ALERT_HOURS = 12               # forecast window
@@ -50,20 +50,26 @@ for period in data.get("timeSeries", []):
         elif pcat in (3, 4):
             alerts_by_date[date_str].append(f"{time_str}:🌧️ Regn {pmean:.1f} mm/h")
 if snow_total_mm >= SNOW_THRESHOLD:
-    alerts_by_date["SNÖVARNING"].append(f"❄️❄️❄️Kraftigt snöfall väntas: {snow_total_mm:.1f} mm under {ALERT_HOURS}h")
-all_alerts_list = []
+    heavy_snow_msg = f"❄️❄️❄️Kraftigt snöfall väntas: {snow_total_mm:.1f} mm under {ALERT_HOURS}h"
+flat_alerts = []
+if heavy_snow_msg:
+    flat_alerts.append(heavy_snow_msg)
 for date_key in sorted(alerts_by_date.keys()):
-    all_alerts_list.append(date_key)
-    all_alerts_list.extend(alerts_by_date[date_key])
+    flat_alerts.append(date_key)
+    flat_alerts.extend(alerts_by_date[date_key])
 # ---- Avoid repeat alerts ----
 #alert_hash = hashlib.sha256("\n".join(all_alerts_list).encode()).hexdigest()
 #if LAST_ALERT_FILE.exists() and LAST_ALERT_FILE.read_text().strip() == alert_hash:
 #    print("Inga nya varningar — skippar e-post.")
 #    exit(0)
 #LAST_ALERT_FILE.write_text(alert_hash)
-if alerts_by_date:
+if alerts_by_date or heavy_snow_msg:
     RECIPIENTS = [email.strip() for email in TO_EMAIL.split(",") if email.strip()]
     msg_body_lines = []
+    if heavy_snow_msg:
+        msg_body_lines.append("SNÖVARNING!")
+        msg_body_lines.append(heavy_snow_msg)
+        msg_body_lines.append("")  # blank line after headline
     for date_key in sorted(alerts_by_date.keys()):
         msg_body_lines.append(date_key)
         for alert_msg in alerts_by_date[date_key]:
