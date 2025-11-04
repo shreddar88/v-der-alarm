@@ -1,15 +1,14 @@
 import os
+import smtplib
 import hashlib
 import pathlib
-import smtplib
 import requests
 from collections import defaultdict
 from email.message import EmailMessage
 from datetime import datetime, timedelta, timezone
-# ----- CONFIG -----
 LAT = 55.593792
 LON = 13.024406
-TEMP_THRESHOLD = 10.0          # °C, below triggers alert
+TEMP_THRESHOLD = 20.0          # °C, below triggers alert
 REGN_THRESHOLD = 0.0        # mm/h threshold for rain/snow alerts
 SNOW_THRESHOLD = 20.0   # mm in ALERT_HOURS total
 ALERT_HOURS = 12               # forecast window
@@ -19,7 +18,6 @@ EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 TO_EMAIL = os.getenv("TO_EMAIL")
 #LAST_ALERT_FILE = pathlib.Path(".last_alert")
-# -------------------
 url = f"https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/{LON}/lat/{LAT}/data.json"
 res = requests.get(url)
 res.raise_for_status()
@@ -28,7 +26,6 @@ now_utc = datetime.now(timezone.utc)
 end_time = now_utc + timedelta(hours=ALERT_HOURS)
 alerts_by_date = defaultdict(list)
 snow_total_mm = 0.0
-heavy_snow_msg = None
 for period in data.get("timeSeries", []):
     time_utc = datetime.fromisoformat(period["validTime"].replace("Z", "+00:00"))
     if not (now_utc < time_utc <= end_time):
@@ -45,20 +42,29 @@ for period in data.get("timeSeries", []):
         if pcat == 1:
             alerts_by_date[date_str].append(f"{time_str}:❄️ Snö {pmean:.1f} mm/h")
             snow_total_mm += pmean
+            if heavy_snow_start is None:
+                heavy_snow_start = time_local
         elif pcat == 2:
             alerts_by_date[date_str].append(f"{time_str}:❄️🌧️ Blandad snö/regn {pmean:.1f} mm/h")
             snow_total_mm += pmean / 2
+            if heavy_snow_start is None:
+                heavy_snow_start = time_local
         elif pcat in (3, 4):
             alerts_by_date[date_str].append(f"{time_str}:🌧️ Regn {pmean:.1f} mm/h")
+heavy_snow_msg = None
 if snow_total_mm >= SNOW_THRESHOLD:
-    heavy_snow_msg = f"❄️❄️❄️Kraftigt snöfall väntas: {snow_total_mm:.1f} mm under {ALERT_HOURS}h"
+    start_info = ""
+    if heavy_snow_start:
+        hours_until = int((heavy_snow_start - now_utc).total_seconds() // 3600)
+        start_info = f"\nStart om ca {hours_until} timmar ({heavy_snow_start.strftime('%Y-%m-%d %H:%M')})"
+    heavy_snow_msg = (f"❄️❄️❄️Kraftigt snöfall väntas: {snow_total_mm:.1f} mm under {ALERT_HOURS}h{start_info}")
 flat_alerts = []
 if heavy_snow_msg:
     flat_alerts.append(heavy_snow_msg)
 for date_key in sorted(alerts_by_date.keys()):
     flat_alerts.append(date_key)
     flat_alerts.extend(alerts_by_date[date_key])
-# ---- Avoid repeat alerts ----Av kommentera uppåt och i .yml filen
+# ---- Avoid repeat alerts ----
 #alert_hash = hashlib.sha256("\n".join(all_alerts_list).encode()).hexdigest()
 #if LAST_ALERT_FILE.exists() and LAST_ALERT_FILE.read_text().strip() == alert_hash:
 #    print("Inga nya varningar — skippar e-post.")
