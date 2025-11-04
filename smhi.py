@@ -29,7 +29,7 @@ url = f"https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/g
 res = requests.get(url)
 res.raise_for_status()
 data = res.json()
-now = datetime.now(timezone.utc)
+now_utc = datetime.now(timezone.utc)
 end_time = now + timedelta(hours=ALERT_HOURS)
 alerts = []
 snow_total_mm = 0.0
