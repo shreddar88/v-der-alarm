@@ -15,9 +15,9 @@ HEAVY_SNOW_THRESHOLD = 20.0   # mm in ALERT_HOURS total
 ALERT_HOURS = 24               # forecast window
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 465
-EMAIL_USER = os.environ["EMAIL_ADDRESS"]
-EMAIL_PASSWORD = os.environ["EMAIL_PASSWORD"]
-RECIPIENTS = os.environ["TO_EMAIL"].split(",")
+EMAIL_USER = os.getenv["EMAIL_ADDRESS"]
+EMAIL_PASSWORD = os.getenv["EMAIL_PASSWORD"]
+RECIPIENTS = os.getenv["TO_EMAIL"].split(",")
 #LAST_ALERT_FILE = pathlib.Path(".last_alert")
 # -------------------
 
