@@ -1,0 +1,39 @@
+name: Snow Notifier
+
+on:
+  schedule:
+    - cron: "0 * * * *"   # hourly
+  workflow_dispatch:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+    #  - name: Restore alert history
+    #    uses: actions/cache@v4
+    #    with:
+    #      path: .last_alert
+    #      key: last-alert
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run notifier script
+        env:
+          EMAIL_USER: ${{ secrets.EMAIL_ADRESS }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          RECIPIENTS: ${{ secrets.TO_EMAIL }}
+        run: python notifier.py
+
+    #  - name: Save alert history
+    #    uses: actions/cache@v4
+    #    with:
+    #      path: .last_alert
+    #      key: last-alert
