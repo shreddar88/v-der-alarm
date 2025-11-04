@@ -3,7 +3,7 @@ name: Weather Alert
 on:
   schedule:
     # Run every 3 hours, 15 min past 
-    - cron: '15 */3 * * *'
+    - cron: '15 */4 * * *'
   workflow_dispatch: # allows manual trigger
 
 jobs:
