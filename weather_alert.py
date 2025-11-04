@@ -33,22 +33,28 @@ data = response.json()
 now_utc = datetime.utcnow()
 alert_forecasts = []
 
-for forecast in data["list"]:
-    forecast_time_utc = datetime.utcfromtimestamp(forecast["dt"])
-if forecast_time_utc > now_utc + timedelta(hours=3):
-    break
+# CHECK NEXT 3 HOURS
 
+for forecast in data["list"]:
+forecast_time_utc = datetime.utcfromtimestamp(forecast["dt"])
+if forecast_time_utc > now_utc + timedelta(hours=3):
+break
+
+```
 temp = forecast["main"]["temp"]
 rain = forecast.get("rain", {}).get("3h", 0)
 
 if temp < TEMP_THRESHOLD or rain > RAIN_THRESHOLD:
     forecast_time_local = forecast_time_utc + CET_OFFSET
     alert_forecasts.append((forecast_time_local, temp, rain))
+```
 
 # SEND ALERT IF ANY
-if alert_forecasts:
-    recipients = [email.strip() for email in TO_EMAIL.split(",") if email.strip()]
 
+if alert_forecasts:
+recipients = [email.strip() for email in TO_EMAIL.split(",") if email.strip()]
+
+```
 # Determine time range
 if len(alert_forecasts) > 1:
     start_time = alert_forecasts[0][0].strftime('%H:%M')
@@ -91,5 +97,6 @@ with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
 #     json.dump(alert_log, f)
 
 print("Varning skickad:\n", alert_msg)
+```
 else:
-    print("Ingen regn- eller temperaturvarning för de kommande 3 timmarna.")
+print("Ingen regn- eller temperaturvarning för de kommande 3 timmarna.")
