@@ -28,6 +28,7 @@ now_utc = datetime.now(timezone.utc)
 end_time = now_utc + timedelta(hours=ALERT_HOURS)
 alerts_by_date = defaultdict(list)
 snow_total_mm = 0.0
+heavy_snow_msg = None
 for period in data.get("timeSeries", []):
     time_utc = datetime.fromisoformat(period["validTime"].replace("Z", "+00:00"))
     if not (now_utc < time_utc <= end_time):
