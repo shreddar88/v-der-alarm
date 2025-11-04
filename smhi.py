@@ -30,7 +30,7 @@ res = requests.get(url)
 res.raise_for_status()
 data = res.json()
 now_utc = datetime.now(timezone.utc)
-end_time = now + timedelta(hours=ALERT_HOURS)
+end_time = now_utc + timedelta(hours=ALERT_HOURS)
 alerts = []
 snow_total_mm = 0.0
 
