@@ -25,10 +25,8 @@ url = f"https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/g
 res = requests.get(url)
 res.raise_for_status()
 data = res.json()
-
 now = datetime.now(timezone.utc)
 end_time = now + timedelta(hours=ALERT_HOURS)
-
 alerts = []
 snow_total_mm = 0.0
 
@@ -41,7 +39,6 @@ for period in data.get("timeSeries", []):
     t = next(p["values"][0] for p in period["parameters"] if p["name"] == "t")
     pcat = next(p["values"][0] for p in period["parameters"] if p["name"] == "pcat")
     pmean = next(p["values"][0] for p in period["parameters"] if p["name"] == "pmean")
-
     if t < TEMP_THRESHOLD:
         alerts.append(f"{time}: Temp {t}°C")
     if pmean > PRECIP_THRESHOLD:
