@@ -76,7 +76,7 @@ if alerts:
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
         smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
         smtp.send_message(msg, from_addr=EMAIL_ADDRESS, to_addrs=RECIPIENTS)
-    print("Varning skickad:\n", alert_msg)
+    print("Varning skickad:\n", alert)
 
    # body = "Weather alerts for your location:\n\n" + "\n".join(alerts)
    # msg = MIMEText(body)
