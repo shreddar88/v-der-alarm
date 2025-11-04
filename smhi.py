@@ -1,4 +1,4 @@
-mport os
+import os
 import requests
 from datetime import datetime, timedelta, timezone
 import smtplib
