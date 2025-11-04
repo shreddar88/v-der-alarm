@@ -5,6 +5,7 @@ import smtplib
 from email.message import EmailMessage
 import hashlib
 import pathlib
+from collections import defaultdict
 
 # ----- CONFIG -----
 #MalmöSpånehus
