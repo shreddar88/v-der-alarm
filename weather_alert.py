@@ -36,9 +36,9 @@ alert_forecasts = []
 # CHECK NEXT 3 HOURS
 
 for forecast in data["list"]:
-forecast_time_utc = datetime.utcfromtimestamp(forecast["dt"])
+    forecast_time_utc = datetime.utcfromtimestamp(forecast["dt"])
 if forecast_time_utc > now_utc + timedelta(hours=3):
-break
+    break
 
 ```
 temp = forecast["main"]["temp"]
@@ -52,7 +52,7 @@ if temp < TEMP_THRESHOLD or rain > RAIN_THRESHOLD:
 # SEND ALERT IF ANY
 
 if alert_forecasts:
-recipients = [email.strip() for email in TO_EMAIL.split(",") if email.strip()]
+    recipients = [email.strip() for email in TO_EMAIL.split(",") if email.strip()]
 
 ```
 # Determine time range
