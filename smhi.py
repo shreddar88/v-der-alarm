@@ -15,9 +15,9 @@ HEAVY_SNOW_THRESHOLD = 20.0   # mm in ALERT_HOURS total
 ALERT_HOURS = 24               # forecast window
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 465
-EMAIL_USER = os.getenv("EMAIL_ADDRESS")
+EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
-RECIPIENTS = os.getenv("TO_EMAIL").split(",")
+TO_EMAIL = os.getenv("TO_EMAIL")
 #LAST_ALERT_FILE = pathlib.Path(".last_alert")
 # -------------------
 
@@ -66,15 +66,15 @@ if snow_total_mm >= HEAVY_SNOW_THRESHOLD:
 
 # ---- Send email if alerts exist ----
 if alerts:
+    RECIPIENTS = [email.strip() for email in TO_EMAIL.split(",") if email.strip()]
     body = "Weather alerts for your location:\n\n" + "\n".join(alerts)
     msg = MIMEText(body)
     msg["Subject"] = "Snow/Rain Alert 🚨"
-    msg["From"] = EMAIL_USER
+    msg["From"] = EMAIL_ADDRESS
     msg["To"] = ", ".join(RECIPIENTS)
-
     with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
-        server.login(EMAIL_USER, EMAIL_PASSWORD)
-        server.sendmail(EMAIL_USER, RECIPIENTS, msg.as_string())
+        server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+        server.sendmail(EMAIL_ADDRESS, RECIPIENTS, msg.as_string())
     print("Email sent with alerts.")
 else:
     print("No alerts in next forecast window.")
