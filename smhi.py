@@ -5,13 +5,16 @@ import smtplib
 from email.message import EmailMessage
 import hashlib
 import pathlib
-
 # ----- CONFIG -----
-LAT = 55.593792
-LON = 13.024406
+#MalmöSpånehus
+#LAT = 55.593792
+#LON = 13.024406
+#JönköpingNedan
+LAT = 57.450
+LON = 14.100
 TEMP_THRESHOLD = 20.0          # °C, below triggers alert
-PRECIP_THRESHOLD = 0.0        # mm/h threshold for rain/snow alerts
-HEAVY_SNOW_THRESHOLD = 20.0   # mm in ALERT_HOURS total
+REGN_THRESHOLD = 0.0        # mm/h threshold for rain/snow alerts
+SNOW_THRESHOLD = 20.0   # mm in ALERT_HOURS total
 ALERT_HOURS = 24               # forecast window
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 465
@@ -40,19 +43,19 @@ for period in data.get("timeSeries", []):
     pcat = next(p["values"][0] for p in period["parameters"] if p["name"] == "pcat")
     pmean = next(p["values"][0] for p in period["parameters"] if p["name"] == "pmean")
     if t < TEMP_THRESHOLD:
-        alerts.append(f"{time}: Temp {t}°C")
-    if pmean > PRECIP_THRESHOLD:
+        alerts.append(f"{time}: Temperatur {t}°C")
+    if pmean > REGN_THRESHOLD:
         if pcat == 1:
-            alerts.append(f"{time}: Snow {pmean} mm/h")
+            alerts.append(f"{time}: Snö {pmean} mm/h")
             snow_total_mm += pmean
         elif pcat == 2:
-            alerts.append(f"{time}: Mixed snow/rain {pmean} mm/h")
+            alerts.append(f"{time}: Mix snö/regn {pmean} mm/h")
             snow_total_mm += pmean / 2
         elif pcat in (3, 4):
-            alerts.append(f"{time}: Rain {pmean} mm/h")
+            alerts.append(f"{time}: Regn {pmean} mm/h")
 
-if snow_total_mm >= HEAVY_SNOW_THRESHOLD:
-    alerts.append(f"Heavy snow expected: {snow_total_mm:.1f} mm in next {ALERT_HOURS}h")
+if snow_total_mm >= SNOW_THRESHOLD:
+    alerts.append(f"Mycket snö förväntas: {snow_total_mm:.1f} mm nästkommande {ALERT_HOURS}h")
 
 # ---- Avoid repeat alerts ----
 #alerts_sorted = sorted(alerts)
@@ -68,7 +71,7 @@ if snow_total_mm >= HEAVY_SNOW_THRESHOLD:
 if alerts:
     RECIPIENTS = [email.strip() for email in TO_EMAIL.split(",") if email.strip()]
     msg = EmailMessage()
-    body = "Weather alerts for your location:\n\n" + "\n".join(alerts)
+    body = "Väder rapporter snöröjargänget:\n\n" + "\n".join(alerts)
     msg.set_content(body)
     msg["Subject"] = "Vädervarning"
     msg["From"] = EMAIL_ADDRESS
