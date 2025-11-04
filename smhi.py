@@ -1,11 +1,11 @@
 import os
-import requests
-from datetime import datetime, timedelta, timezone
-import smtplib
-from email.message import EmailMessage
 import hashlib
 import pathlib
+import smtplib
+import requests
 from collections import defaultdict
+from email.message import EmailMessage
+from datetime import datetime, timedelta, timezone
 # ----- CONFIG -----
 LAT = 55.593792
 LON = 13.024406
