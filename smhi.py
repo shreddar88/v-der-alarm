@@ -84,7 +84,7 @@ for date_key in sorted(alerts_by_date.keys()):
     flat_alerts.extend(alerts_by_date[date_key])
 
 # ---- Avoid repeat alerts ---- # If the file exists and the stored hash matches current hash -> nothing changed -> skip
-alert_hash = hashlib.sha256("\n".join(all_alerts_list).encode()).hexdigest()
+alert_hash = hashlib.sha256("\n".join(flat_alerts).encode()).hexdigest()
 if LAST_ALERT_FILE.exists() and LAST_ALERT_FILE.read_text().strip() == alert_hash:
     print("Inga nya varningar — skippar e-post.")
     exit(0)
