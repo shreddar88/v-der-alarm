@@ -13,11 +13,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-    #  - name: Restore alert history
-    #    uses: actions/cache@v4
-    #    with:
-    #      path: .last_alert
-    #      key: last-alert
+      - name: Restore alert history
+        uses: actions/cache@v4
+        with:
+          path: .last_alert
+          key: last-alert-v1
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -34,8 +34,8 @@ jobs:
           TO_EMAIL: ${{ secrets.TO_EMAIL }}
         run: python smhi.py
 
-    #  - name: Save alert history
-    #    uses: actions/cache@v4
-    #    with:
-    #      path: .last_alert
-    #      key: last-alert
+      - name: Save alert history
+        uses: actions/cache@v4
+        with:
+          path: .last_alert
+          key: last-alert-v1
