@@ -9,11 +9,11 @@ from datetime import datetime, timedelta, timezone
 
 #Config/Env vars
 #Location - Alta Norge
-LAT = 69.9687
-LON = 23.2715
+#LAT = 69.9687
+#LON = 23.2715
 #Malmö
-#LAT = 55.593792
-#LON = 13.024406
+LAT = 55.593792
+LON = 13.024406
 #Tresholds
 TEMP_THRESHOLD = 10.0                                       # °C, below triggers alert
 REGN_THRESHOLD = 0.0                                        # mm/h threshold for rain/snow alerts
@@ -106,7 +106,7 @@ if alerts_by_date or heavy_snow_msg:
             msg_body_lines.append(f"  {alert_msg}")
         msg_body_lines.append("")  # blank line after each day
 
-    body = "Vädervarningar för snöröjargänget:\n\n" + "\n".join(msg_body_lines)
+    body = "Vädret i Malmö:\n\n" + "\n".join(msg_body_lines)
     msg = EmailMessage()
     msg.set_content(body)
     msg["Subject"] = "Vädervarning"
