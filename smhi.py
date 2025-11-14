@@ -48,25 +48,29 @@ for period in data.get("timeSeries", []):
     date_str = time_local.strftime("%Y-%m-%d")
     time_str = time_local.strftime("%H:%M")
 # Extract parameters from SMHI "parameters" array:
-# - "t" is temperature (°C) "- pcat" is precipitation category (1=snow, 2=mixed, 3=rain, 4=drizzle, ...) "- pmean" is precipitation rate (mm/h)
+# - "t" is temperature (°C) - "pcat" is precipitation category (1=snow, 2=mixed, 3=rain, 4=drizzle, ...)
+# - "pmean" is precipitation rate (mm/h) - "spp" is probability of precipitation (%)
     t = next(p["values"][0] for p in period["parameters"] if p["name"] == "t")
     pcat = next(p["values"][0] for p in period["parameters"] if p["name"] == "pcat")
     pmean = next(p["values"][0] for p in period["parameters"] if p["name"] == "pmean")
+    spp = next((p["values"][0] for p in period["parameters"] if p["name"] == "spp"), None) # Get spp, default to None if not found
+    spp_msg = f" (Sannolikhet: {int(spp)}%)" if spp is not None and pmean > 0 else ""
+
     if t < TEMP_THRESHOLD:
         alerts_by_date[date_str].append(f"{time_str}:🥶 Temperatur {t:.1f}°C")
     if pmean > REGN_THRESHOLD:
         if pcat == 1:
-            alerts_by_date[date_str].append(f"{time_str}:❄️ Snö {pmean:.1f} mm/h")
+            alerts_by_date[date_str].append(f"{time_str}:❄️ Snö {pmean:.1f} mm/h{spp_msg}")
             snow_total_mm += pmean
             if heavy_snow_start is None:
                 heavy_snow_start = time_local
         elif pcat == 2:
-            alerts_by_date[date_str].append(f"{time_str}:❄️🌧️ Blandad snö/regn {pmean:.1f} mm/h")
+            alerts_by_date[date_str].append(f"{time_str}:❄️🌧️ Blandad snö/regn {pmean:.1f} mm/h{spp_msg}")
             snow_total_mm += pmean / 2
             if heavy_snow_start is None:
                 heavy_snow_start = time_local
         elif pcat in (3, 4):
-            alerts_by_date[date_str].append(f"{time_str}:🌧️ Regn {pmean:.1f} mm/h")
+            alerts_by_date[date_str].append(f"{time_str}:🌧️ Regn {pmean:.1f} mm/h{spp_msg}")
 #Build heavy snow message if total exceeds threshold            
 heavy_snow_msg = None
 if snow_total_mm >= SNOW_THRESHOLD:
