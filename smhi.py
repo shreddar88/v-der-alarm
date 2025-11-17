@@ -55,6 +55,7 @@ for period in data.get("timeSeries", []):
     pcat = next(p["values"][0] for p in period["parameters"] if p["name"] == "pcat")
     pmean = next(p["values"][0] for p in period["parameters"] if p["name"] == "pmean")
     spp = next((p["values"][0] for p in period["parameters"] if p["name"] == "spp"), None)
+    print(time_local.isoformat(), "spp=", spp, "pmean=", pmean, "pcat=", pcat)
     # Only show precipitation alerts if model predicts precipitation AND probability is above threshold. If spp is missing from the data, fall back to the pmean-only rule (to avoid missing alerts).
     show_precip = (pmean > REGN_THRESHOLD) and (spp is None or spp >= SPP_THRESHOLD)
     # Only show the probability text if we have spp and it's >= threshold
