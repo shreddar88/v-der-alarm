@@ -9,15 +9,16 @@ from datetime import datetime, timedelta, timezone
 
 #Config/Env vars
 #Location - Alta Norge
-#LAT = 69.9687
-#LON = 23.2715
+LAT = 69.9687
+LON = 23.2715
 #Malmö
-LAT = 55.593792
-LON = 13.024406
+#LAT = 55.593792
+#LON = 13.024406
 #Tresholds
 TEMP_THRESHOLD = 10.0                                       # °C, below triggers alert
 REGN_THRESHOLD = 0.0                                        # mm/h threshold for rain/snow alerts
 SNOW_THRESHOLD = 20.0                                       # mm in ALERT_HOURS total
+SPP_THRESHOLD = 5                                           # Sannolikhets gräns för regn etc 
 ALERT_HOURS = 12                                            # forecast window
 #Email
 SMTP_SERVER = "smtp.gmail.com"
@@ -53,12 +54,14 @@ for period in data.get("timeSeries", []):
     t = next(p["values"][0] for p in period["parameters"] if p["name"] == "t")
     pcat = next(p["values"][0] for p in period["parameters"] if p["name"] == "pcat")
     pmean = next(p["values"][0] for p in period["parameters"] if p["name"] == "pmean")
-    spp = next((p["values"][0] for p in period["parameters"] if p["name"] == "spp"), None) # Get spp, default to None if not found
-    spp_msg = f" (Sannolikhet: {int(spp)}%)" if spp is not None and pmean > 0 else ""
-
+    spp = next((p["values"][0] for p in period["parameters"] if p["name"] == "spp"), None)
+    # Only show precipitation alerts if model predicts precipitation AND probability is above threshold. If spp is missing from the data, fall back to the pmean-only rule (to avoid missing alerts).
+    show_precip = (pmean > REGN_THRESHOLD) and (spp is None or spp >= SPP_THRESHOLD)
+    # Only show the probability text if we have spp and it's >= threshold
+    spp_msg = f" (Sannolikhet: {int(spp)}%)" if spp is not None and spp >= SPP_THRESHOLD else ""
     if t < TEMP_THRESHOLD:
         alerts_by_date[date_str].append(f"{time_str}:🥶 Temperatur {t:.1f}°C")
-    if pmean > REGN_THRESHOLD:
+    if show_precip:
         if pcat == 1:
             alerts_by_date[date_str].append(f"{time_str}:❄️ Snö {pmean:.1f} mm/h{spp_msg}")
             snow_total_mm += pmean
@@ -110,7 +113,7 @@ if alerts_by_date or heavy_snow_msg:
             msg_body_lines.append(f"  {alert_msg}")
         msg_body_lines.append("")  # blank line after each day
 
-    body = "Vädret i Malmö:\n\n" + "\n".join(msg_body_lines)
+    body = "Vädret i Alta(Norge):\n\n" + "\n".join(msg_body_lines)
     msg = EmailMessage()
     msg.set_content(body)
     msg["Subject"] = "Vädervarning"
