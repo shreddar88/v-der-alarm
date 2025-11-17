@@ -55,11 +55,15 @@ for period in data.get("timeSeries", []):
     pcat = next(p["values"][0] for p in period["parameters"] if p["name"] == "pcat")
     pmean = next(p["values"][0] for p in period["parameters"] if p["name"] == "pmean")
     spp = next((p["values"][0] for p in period["parameters"] if p["name"] == "spp"), None)
-    print(time_local.isoformat(), "spp=", spp, "pmean=", pmean, "pcat=", pcat)
-    # Only show precipitation alerts if model predicts precipitation AND probability is above threshold. If spp is missing from the data, fall back to the pmean-only rule (to avoid missing alerts).
+    # Only show precipitation alerts if model predicts precipitation AND probability is above threshold.
     show_precip = (pmean > REGN_THRESHOLD) and (spp is None or spp >= SPP_THRESHOLD)
-    # Only show the probability text if we have spp and it's >= threshold
-    spp_msg = f" (Sannolikhet: {int(spp)}%)" if spp is not None and spp >= SPP_THRESHOLD else ""
+    # Build spp display: round down to nearest step and cap at max display.
+    if spp is not None and spp >= SPP_THRESHOLD:
+        displayed_spp = (int(spp) // SPP_ROUND_DOWN_STEP) * SPP_ROUND_DOWN_STEP
+        displayed_spp = min(displayed_spp, SPP_MAX_DISPLAY)
+        spp_msg = f" (Sannolikhet: {displayed_spp}%)"
+    else:
+        spp_msg = ""
     if t < TEMP_THRESHOLD:
         alerts_by_date[date_str].append(f"{time_str}:🥶 Temperatur {t:.1f}°C")
     if show_precip:
