@@ -19,6 +19,8 @@ TEMP_THRESHOLD = 10.0                                       # °C, below trigger
 REGN_THRESHOLD = 0.0                                        # mm/h threshold for rain/snow alerts
 SNOW_THRESHOLD = 20.0                                       # mm in ALERT_HOURS total
 SPP_THRESHOLD = 5                                           # Sannolikhets gräns för regn etc 
+SPP_ROUND_DOWN_STEP = 10                                    # Runda ned till närmst n ex 10%
+SPP_MAX_DISPLAY = 90                                        # Max 90%
 ALERT_HOURS = 12                                            # forecast window
 #Email
 SMTP_SERVER = "smtp.gmail.com"
