@@ -19,6 +19,12 @@ TEMP_THRESHOLD = 10.0                                       # °C, below trigger
 REGN_THRESHOLD = 0.0                                        # mm/h threshold for rain/snow alerts
 SNOW_THRESHOLD = 20.0                                       # mm in ALERT_HOURS total
 ALERT_HOURS = 12                                            # forecast window
+
+# Nya tröskelvärden för frost och underkylt regn
+FROST_TEMP_THRESHOLD = 0.0                                  # °C, at or below triggers frost alert
+FREEZING_RAIN_TEMP_LOWER = -2.0                             # °C, lower bound for freezing rain alert
+FREEZING_RAIN_TEMP_UPPER = 2.0                              # °C, upper bound for freezing rain alert
+
 #Email
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 465
@@ -48,30 +54,52 @@ for period in data.get("timeSeries", []):
     date_str = time_local.strftime("%Y-%m-%d")
     time_str = time_local.strftime("%H:%M")
 # Extract parameters from SMHI "parameters" array:
-# - "t" is temperature (°C) - "pcat" is precipitation category (1=snow, 2=mixed, 3=rain, 4=drizzle, ...)
-# - "pmean" is precipitation rate (mm/h) - "spp" is probability of precipitation (%)
+# - "t" is temperature (°C)
+# - "pcat" is precipitation category (1=snow, 2=mixed, 3=rain, 4=drizzle, ...)
+# - "pmean" is precipitation rate (mm/h)
     t = next(p["values"][0] for p in period["parameters"] if p["name"] == "t")
     pcat = next(p["values"][0] for p in period["parameters"] if p["name"] == "pcat")
     pmean = next(p["values"][0] for p in period["parameters"] if p["name"] == "pmean")
+    
+    # För debug - Kommentera bort eller ta bort när du är klar!
+    # print(time_local.isoformat(), f"t={t}", f"pmean={pmean}", f"pcat={pcat}")
 
-    # Only show precipitation alerts if model predicts precipitation AND probability is above threshold.
+    # Bestäm om en nederbördsvärning ska triggas
     show_precip = pmean > REGN_THRESHOLD
-    spp_msg = ""
-    if t < TEMP_THRESHOLD:
+    
+    # Variabel för att hålla reda på om en specifik temperaturvarning (frost) redan har lagts till
+    is_specific_temp_alert = False
+
+    # 1. Frostvarning
+    if t <= FROST_TEMP_THRESHOLD:
+        alerts_by_date[date_str].append(f"{time_str}: ❄️ Risk för frost ({t:.1f}°C)")
+        is_specific_temp_alert = True
+    
+    # 2. Allmän lågtemperaturvarning (endast om ingen specifik frostvarning lades till)
+    if not is_specific_temp_alert and t < TEMP_THRESHOLD:
         alerts_by_date[date_str].append(f"{time_str}:🥶 Temperatur {t:.1f}°C")
+
+    # 3. Nederbördsvärningar
     if show_precip:
-        if pcat == 1:
-            alerts_by_date[date_str].append(f"{time_str}:❄️ Snö {pmean:.1f} mm/h{spp_msg}")
+        # 3a. Underkylt regn / Frysande nederbörd
+        if pcat in (3, 4) and (FREEZING_RAIN_TEMP_LOWER <= t <= FREEZING_RAIN_TEMP_UPPER):
+            alerts_by_date[date_str].append(f"{time_str}: 🧊 Risk för underkylt regn/frysande nederbörd(frost) ({pmean:.1f} mm/h vid {t:.1f}°C)")
+        # 3b. Snö
+        elif pcat == 1:
+            alerts_by_date[date_str].append(f"{time_str}:❄️ Snö {pmean:.1f} mm/h")
             snow_total_mm += pmean
             if heavy_snow_start is None:
                 heavy_snow_start = time_local
+        # 3c. Blandad snö/regn
         elif pcat == 2:
-            alerts_by_date[date_str].append(f"{time_str}:❄️🌧️ Blandad snö/regn {pmean:.1f} mm/h{spp_msg}")
+            alerts_by_date[date_str].append(f"{time_str}:❄️🌧️ Blandad snö/regn {pmean:.1f} mm/h")
             snow_total_mm += pmean / 2
             if heavy_snow_start is None:
                 heavy_snow_start = time_local
+        # 3d. Vanligt regn (om inte underkylt)
         elif pcat in (3, 4):
-            alerts_by_date[date_str].append(f"{time_str}:🌧️ Regn {pmean:.1f} mm/h{spp_msg}")
+            alerts_by_date[date_str].append(f"{time_str}:🌧️ Regn {pmean:.1f} mm/h")
+
 #Build heavy snow message if total exceeds threshold            
 heavy_snow_msg = None
 if snow_total_mm >= SNOW_THRESHOLD:
@@ -111,7 +139,7 @@ if alerts_by_date or heavy_snow_msg:
             msg_body_lines.append(f"  {alert_msg}")
         msg_body_lines.append("")  # blank line after each day
 
-    body = "Vädret i Alta(Norge):\n\n" + "\n".join(msg_body_lines)
+    body = "Vädret i Malmö:\n\n" + "\n".join(msg_body_lines)
     msg = EmailMessage()
     msg.set_content(body)
     msg["Subject"] = "Vädervarning"
