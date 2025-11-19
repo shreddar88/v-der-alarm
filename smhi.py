@@ -5,7 +5,7 @@ import pathlib
 import requests
 from collections import defaultdict
 from email.message import EmailMessage
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezones
 
 #Config/Env vars
 #Location - Alta Norge
@@ -16,7 +16,7 @@ LAT = 55.593792
 LON = 13.024406
 #Tresholds
 TEMP_THRESHOLD = 10.0                                       # °C, below triggers alert
-REGN_THRESHOLD = 0.0                                        # mm/h threshold for rain/snow alerts
+REGN_THRESHOLD = 0.1                                        # mm/h threshold for rain/snow alerts
 SNOW_THRESHOLD = 20.0                                       # mm in ALERT_HOURS total
 SPP_THRESHOLD = 5                                           # Sannolikhets gräns för regn etc 
 SPP_ROUND_DOWN_STEP = 10                                    # Runda ned till närmst n ex 10%
