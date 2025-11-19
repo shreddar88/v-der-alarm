@@ -44,7 +44,6 @@ end_time = now_utc + timedelta(hours=ALERT_HOURS)           #end of the lookahea
 # Datastruktur för att gruppera alerts per datum OCH tid.
 # alerts_by_date_time[date_str][time_str] kommer att innehålla en lista med varningsbeskrivningar.
 alerts_by_date_time = defaultdict(lambda: defaultdict(list))
-
 snow_total_mm = 0.0                                         #spårar total snömängd
 heavy_snow_start = None                                     #och starttid för kraftigt snöfall
 
@@ -66,7 +65,7 @@ for period in data.get("timeSeries", []):
     pmean = next(p["values"][0] for p in period["parameters"] if p["name"] == "pmean")
     
     # För debug - Kommentera bort eller ta bort när du är klar!
-    # print(time_local.isoformat(), f"t={t}", f"pmean={pmean}", f"pcat={pcat}")
+    print(time_local.isoformat(), f"t={t}", f"pmean={pmean}", f"pcat={pcat}")
 
     # Bestäm om en nederbördsvärning ska triggas (baseras på mängd)
     is_any_precip_occurring = pmean > REGN_THRESHOLD
