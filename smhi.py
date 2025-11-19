@@ -15,15 +15,15 @@ from datetime import datetime, timedelta, timezone
 LAT = 55.593792
 LON = 13.024406
 #Tresholds
-TEMP_THRESHOLD = 10.0                                       # °C, below triggers alert
-REGN_THRESHOLD = 0.0                                        # mm/h threshold for rain/snow alerts
+# TEMP_THRESHOLD (allmän lågtemp-varning) har tagits bort, då vi fokuserar på frost
+REGN_THRESHOLD = 0.0                                        # mm/h threshold for relevant precipitation (snow, mixed, freezing rain)
 SNOW_THRESHOLD = 20.0                                       # mm in ALERT_HOURS total
 ALERT_HOURS = 12                                            # forecast window
 
-# Nya tröskelvärden för frost och underkylt regn
-FROST_TEMP_THRESHOLD = 0.0                                  # °C, at or below triggers frost alert
-FREEZING_RAIN_TEMP_LOWER = -2.0                             # °C, lower bound for freezing rain alert
-FREEZING_RAIN_TEMP_UPPER = 2.0                              # °C, upper bound for freezing rain alert
+# Tröskelvärden för frost och underkylt regn
+FROST_TEMP_THRESHOLD = 0.0                                  # °C, vid eller under triggar frostvarning
+FREEZING_RAIN_TEMP_LOWER = -2.0                             # °C, nedre gräns för temperatur vid underkylt regn
+FREEZING_RAIN_TEMP_UPPER = 2.0                              # °C, övre gräns för temperatur vid underkylt regn
 
 #Email
 SMTP_SERVER = "smtp.gmail.com"
@@ -41,12 +41,12 @@ data = res.json()                                           #Parse response body
 now_utc = datetime.now(timezone.utc)                        #Current UTC time
 end_time = now_utc + timedelta(hours=ALERT_HOURS)           #end of the lookahead window
 
-# Ändrad datastruktur: Använder nu defaultdict för att gruppera alerts per datum OCH tid.
+# Datastruktur för att gruppera alerts per datum OCH tid.
 # alerts_by_date_time[date_str][time_str] kommer att innehålla en lista med varningsbeskrivningar.
 alerts_by_date_time = defaultdict(lambda: defaultdict(list))
 
-snow_total_mm = 0.0                                         #track snow total
-heavy_snow_start = None                                     #and start time
+snow_total_mm = 0.0                                         #spårar total snömängd
+heavy_snow_start = None                                     #och starttid för kraftigt snöfall
 
 #Iterate over forecast time series from SMHI
 for period in data.get("timeSeries", []):
@@ -68,43 +68,33 @@ for period in data.get("timeSeries", []):
     # För debug - Kommentera bort eller ta bort när du är klar!
     # print(time_local.isoformat(), f"t={t}", f"pmean={pmean}", f"pcat={pcat}")
 
-    # Bestäm om en nederbördsvärning ska triggas
-    show_precip = pmean > REGN_THRESHOLD
+    # Bestäm om en nederbördsvärning ska triggas (baseras på mängd)
+    is_any_precip_occurring = pmean > REGN_THRESHOLD
     
-    # Variabel för att hålla reda på om en specifik temperaturvarning (frost) redan har lagts till
-    is_specific_temp_alert = False
-
-    # 1. Frostvarning
+    # 1. Frostvarning (om temperaturen är vid eller under noll)
     if t <= FROST_TEMP_THRESHOLD:
         alerts_by_date_time[date_str][time_str].append(f"❄️ Risk för frost ({t:.1f}°C)")
-        is_specific_temp_alert = True
     
-    # 2. Allmän lågtemperaturvarning (endast om ingen specifik frostvarning lades till)
-    if not is_specific_temp_alert and t < TEMP_THRESHOLD:
-        alerts_by_date_time[date_str][time_str].append(f"🥶 Temperatur {t:.1f}°C")
-
-    # 3. Nederbördsvärningar
-    if show_precip:
-        # 3a. Underkylt regn / Frysande nederbörd
+    # 2. Nederbördsvärningar (endast snö, blandat, eller underkylt regn)
+    if is_any_precip_occurring:
+        # 2a. Underkylt regn / Frysande nederbörd (om regn vid temperaturer nära fryspunkten)
         if pcat in (3, 4) and (FREEZING_RAIN_TEMP_LOWER <= t <= FREEZING_RAIN_TEMP_UPPER):
             alerts_by_date_time[date_str][time_str].append(f"🧊 Risk för underkylt regn/frysande nederbörd ({pmean:.1f} mm/h vid {t:.1f}°C)")
-        # 3b. Snö
+        # 2b. Snö
         elif pcat == 1:
             alerts_by_date_time[date_str][time_str].append(f"❄️ Snö {pmean:.1f} mm/h")
             snow_total_mm += pmean
             if heavy_snow_start is None:
                 heavy_snow_start = time_local
-        # 3c. Blandad snö/regn
+        # 2c. Blandad snö/regn (räknas också som en typ av snövarning)
         elif pcat == 2:
             alerts_by_date_time[date_str][time_str].append(f"❄️🌧️ Blandad snö/regn {pmean:.1f} mm/h")
-            snow_total_mm += pmean / 2
+            snow_total_mm += pmean / 2 # Blandad nederbörd bidrar delvis till snömängden
             if heavy_snow_start is None:
                 heavy_snow_start = time_local
-        # 3d. Vanligt regn (om inte underkylt)
-        elif pcat in (3, 4):
-            alerts_by_date_time[date_str][time_str].append(f"🌧️ Regn {pmean:.1f} mm/h")
+        # 2d. Vanligt regn (pcat 3, 4) ignoreras här, om det inte är underkylt (hanteras i 2a).
 
-#Build heavy snow message if total exceeds threshold            
+#Bygger meddelande för kraftigt snöfall om totalen överskrider tröskeln            
 heavy_snow_msg = None
 if snow_total_mm >= SNOW_THRESHOLD:
     start_info = ""
@@ -113,8 +103,8 @@ if snow_total_mm >= SNOW_THRESHOLD:
         start_info = f"\nStart om ca {hours_until} timmar ({heavy_snow_start.strftime('%Y-%m-%d %H:%M')})"
     heavy_snow_msg = (f"❄️❄️❄️Kraftigt snöfall väntas: {snow_total_mm:.1f} mm under {ALERT_HOURS}h{start_info}")
 
-#Flatten alerts into a deterministic list for hashing (heavy snow message first)
-# Denna del har uppdaterats för att hantera den nya datastrukturen och slå ihop meddelanden
+# Platta till alerts för hashning (kraftigt snöfall först)
+# Denna del hanterar den nya strukturen och slår ihop meddelanden för hashning
 flat_alerts = []
 if heavy_snow_msg:
     flat_alerts.append(heavy_snow_msg)
@@ -125,30 +115,30 @@ for date_key in sorted(alerts_by_date_time.keys()):
         combined_alerts_for_hashing = " och ".join(alerts_by_date_time[date_key][time_key])
         flat_alerts.append(f"  {time_key}: {combined_alerts_for_hashing}")
 
-# ---- Avoid repeat alerts ---- # If the file exists and the stored hash matches current hash -> nothing changed -> skip
+# ---- Undvik upprepade varningar ---- # Om filen finns och den lagrade hashen matchar nuvarande hash -> inget har ändrats -> skippa
 alert_hash = hashlib.sha256("\n".join(flat_alerts).encode()).hexdigest()
 if LAST_ALERT_FILE.exists() and LAST_ALERT_FILE.read_text().strip() == alert_hash:
     print("Inga nya varningar — skippar e-post.")
     exit(0)
 LAST_ALERT_FILE.write_text(alert_hash)
 
-#If there are alerts, prepare and send email
-if alerts_by_date_time or heavy_snow_msg: # Kontrollera den nya strukturen här
+#Om det finns varningar, förbered och skicka e-post
+if alerts_by_date_time or heavy_snow_msg:
     RECIPIENTS = [email.strip() for email in TO_EMAIL.split(",") if email.strip()]
-# Compose email body: heavy snow at top, then grouped dates
+# Bygg e-postmeddelandets kropp: kraftigt snöfall överst, sedan grupperade datum
     msg_body_lines = []
     if heavy_snow_msg:
         msg_body_lines.append("SNÖVARNING!")
         msg_body_lines.append(heavy_snow_msg)
-        msg_body_lines.append("")  # blank line after headline
+        msg_body_lines.append("")  # tom rad efter rubrik
 
-    for date_key in sorted(alerts_by_date_time.keys()): # Använd den nya strukturen här
+    for date_key in sorted(alerts_by_date_time.keys()):
         msg_body_lines.append(date_key)
-        for time_key in sorted(alerts_by_date_time[date_key].keys()): # Loopar genom tiderna för varje datum
+        for time_key in sorted(alerts_by_date_time[date_key].keys()):
             # Slå ihop alla meddelanden för denna specifika tidpunkt med " och " emellan
             combined_alerts = " och ".join(alerts_by_date_time[date_key][time_key])
             msg_body_lines.append(f"  {time_key}: {combined_alerts}")
-        msg_body_lines.append("")  # blank line after each day
+        msg_body_lines.append("")  # tom rad efter varje dag
 
     body = "Vädret i Malmö:\n\n" + "\n".join(msg_body_lines)
     msg = EmailMessage()
@@ -156,7 +146,7 @@ if alerts_by_date_time or heavy_snow_msg: # Kontrollera den nya strukturen här
     msg["Subject"] = "Vädervarning"
     msg["From"] = EMAIL_ADDRESS
     msg["To"] = ", ".join(RECIPIENTS)
-    # Send via SMTP SSL
+    # Skicka via SMTP SSL
     with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as smtp:
         smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
         smtp.send_message(msg)
