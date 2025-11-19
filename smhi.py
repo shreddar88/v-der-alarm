@@ -15,7 +15,7 @@ LAT = 55.593792
 LON = 13.024406
 #Tresholds
 TEMP_THRESHOLD = 10.0                                       # °C, below triggers alert
-REGN_THRESHOLD = 0.1                                        # mm/h threshold for rain/snow alerts
+REGN_THRESHOLD = 0.0                                        # mm/h threshold for rain/snow alerts
 SNOW_THRESHOLD = 20.0                                       # mm in ALERT_HOURS total
 SPP_THRESHOLD = 5                                           # Sannolikhets gräns för regn etc 
 SPP_ROUND_DOWN_STEP = 10                                    # Runda ned till närmst n ex 10%
@@ -59,6 +59,7 @@ for period in data.get("timeSeries", []):
     print(time_local.isoformat(), "spp=", spp, "pmean=", pmean, "pcat=", pcat)
     # Only show precipitation alerts if model predicts precipitation AND probability is above threshold.
     show_precip = (pmean > REGN_THRESHOLD) and (spp is None or spp >= SPP_THRESHOLD)
+    print(f"  --> show_precip: {show_precip} (pmean={pmean}, REGN_THRESHOLD={REGN_THRESHOLD}, spp={spp}, SPP_THRESHOLD={SPP_THRESHOLD})")
     # Build spp display: round down to nearest step and cap at max display.
     if spp is not None and spp >= SPP_THRESHOLD:
         displayed_spp = (int(spp) // SPP_ROUND_DOWN_STEP) * SPP_ROUND_DOWN_STEP
