@@ -79,7 +79,7 @@ for period in data.get("timeSeries", []):
     if is_any_precip_occurring:
         # 2a. Underkylt regn / Frysande nederbörd (om regn vid temperaturer nära fryspunkten)
         if pcat in (3, 4) and (FREEZING_RAIN_TEMP_LOWER <= t <= FREEZING_RAIN_TEMP_UPPER):
-            alerts_by_date_time[date_str][time_str].append(f"🧊 Risk för underkylt regn/frysande nederbörd ({pmean:.1f} mm/h vid {t:.1f}°C)")
+            alerts_by_date_time[date_str][time_str].append(f"🧊 Risk för underkylt regn/frysande nederbörd(frost) ({pmean:.1f} mm/h vid {t:.1f}°C)")
         # 2b. Snö
         elif pcat == 1:
             alerts_by_date_time[date_str][time_str].append(f"❄️ Snö {pmean:.1f} mm/h")
