@@ -5,8 +5,7 @@ import pathlib
 import requests
 from collections import defaultdict
 from email.message import EmailMessage
-from datetime import datetime, timedelta, timezones
-
+from datetime import datetime, timedelta, timezone
 #Config/Env vars
 #Location - Alta Norge
 #LAT = 69.9687
