@@ -6,6 +6,7 @@ import requests
 from collections import defaultdict
 from email.message import EmailMessage
 from datetime import datetime, timedelta, timezone
+
 #Config/Env vars
 #Location - Alta Norge
 #LAT = 69.9687
@@ -17,9 +18,6 @@ LON = 13.024406
 TEMP_THRESHOLD = 10.0                                       # °C, below triggers alert
 REGN_THRESHOLD = 0.0                                        # mm/h threshold for rain/snow alerts
 SNOW_THRESHOLD = 20.0                                       # mm in ALERT_HOURS total
-SPP_THRESHOLD = 5                                           # Sannolikhets gräns för regn etc 
-SPP_ROUND_DOWN_STEP = 10                                    # Runda ned till närmst n ex 10%
-SPP_MAX_DISPLAY = 90                                        # Max 90%
 ALERT_HOURS = 12                                            # forecast window
 #Email
 SMTP_SERVER = "smtp.gmail.com"
@@ -55,18 +53,10 @@ for period in data.get("timeSeries", []):
     t = next(p["values"][0] for p in period["parameters"] if p["name"] == "t")
     pcat = next(p["values"][0] for p in period["parameters"] if p["name"] == "pcat")
     pmean = next(p["values"][0] for p in period["parameters"] if p["name"] == "pmean")
-    spp = next((p["values"][0] for p in period["parameters"] if p["name"] == "spp"), None)
-    print(time_local.isoformat(), "spp=", spp, "pmean=", pmean, "pcat=", pcat)
+
     # Only show precipitation alerts if model predicts precipitation AND probability is above threshold.
-    show_precip = (pmean > REGN_THRESHOLD) and (spp is None or spp >= SPP_THRESHOLD)
-    print(f"  --> show_precip: {show_precip} (pmean={pmean}, REGN_THRESHOLD={REGN_THRESHOLD}, spp={spp}, SPP_THRESHOLD={SPP_THRESHOLD})")
-    # Build spp display: round down to nearest step and cap at max display.
-    if spp is not None and spp >= SPP_THRESHOLD:
-        displayed_spp = (int(spp) // SPP_ROUND_DOWN_STEP) * SPP_ROUND_DOWN_STEP
-        displayed_spp = min(displayed_spp, SPP_MAX_DISPLAY)
-        spp_msg = f" (Sannolikhet: {displayed_spp}%)"
-    else:
-        spp_msg = ""
+    show_precip = pmean > REGN_THRESHOLD
+    spp_msg = ""
     if t < TEMP_THRESHOLD:
         alerts_by_date[date_str].append(f"{time_str}:🥶 Temperatur {t:.1f}°C")
     if show_precip:
