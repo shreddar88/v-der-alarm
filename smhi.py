@@ -9,11 +9,11 @@ from datetime import datetime, timedelta, timezone
 
 #Config/Env vars
 #Location - Alta Norge
-LAT = 69.9687
-LON = 23.2715
+#LAT = 69.9687
+#LON = 23.2715
 #Malmö
-#LAT = 55.593792
-#LON = 13.024406
+LAT = 55.593792
+LON = 13.024406
 #Tresholds
 TEMP_THRESHOLD = 10.0                                       # °C, below triggers alert
 REGN_THRESHOLD = 0.0                                        # mm/h threshold for rain/snow alerts
