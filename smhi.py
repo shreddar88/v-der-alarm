@@ -9,8 +9,8 @@ from datetime import datetime, timedelta, timezone
 
 #Config/Env vars
 #Location - Alta Norge
-LAT = 69.9687
-LON = 23.2715
+LAT = 63.9687
+LON = 20.2715
 #Malmö
 #LAT = 55.593792
 #LON = 13.024406
@@ -67,7 +67,7 @@ for period in data.get("timeSeries", []):
     
     # 1. Frostvarning (om temperaturen är vid eller under noll)
     if t <= FROST_TEMP_THRESHOLD:
-        alerts_by_date_time[date_str][time_str].append(f"❄️ Risk för frost ({t:.1f}°C)")
+        alerts_by_date_time[date_str][time_str].append(f"🧊 Risk för frost ({t:.1f}°C)")
     
     # 2. Nederbördsvärningar (endast snö, blandat, eller underkylt regn)
     if is_any_precip_occurring:
