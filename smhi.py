@@ -8,12 +8,9 @@ from email.message import EmailMessage
 from datetime import datetime, timedelta, timezone
 
 #Config/Env vars
-#Location - Alta Norge
-LAT = 63.9687
-LON = 20.2715
 #Malmö
-#LAT = 55.593792
-#LON = 13.024406
+LAT = 55.593792
+LON = 13.024406
 #Tresholds
 REGN_THRESHOLD = 0.0                                        # mm/h threshold for relevant precipitation (snow, mixed, freezing rain)
 ALERT_HOURS = 12                                            # forecast window
