@@ -8,9 +8,11 @@ from email.message import EmailMessage
 from datetime import datetime, timedelta, timezone
 
 #Config/Env vars
+LAT = 63.593792
+LON = 20.024406
 #Malmö
-LAT = 55.593792
-LON = 13.024406
+#LAT = 55.593792
+#LON = 13.024406
 #Tresholds
 REGN_THRESHOLD = 0.0                                        # mm/h threshold for relevant precipitation (snow, mixed, freezing rain)
 ALERT_HOURS = 12                                            # forecast window
@@ -110,10 +112,11 @@ if alerts_by_date_time: # Kontrollera endast om det finns timvisa varningar
             msg_body_lines.append(f"  {time_key}: {combined_alerts}")
         msg_body_lines.append("")  # tom rad efter varje dag
 
-    body = "Vädret i Malmö:\n\n" + "\n".join(msg_body_lines)
+    #body = "Vädret i Malmö:\n\n" + "\n".join(msg_body_lines)
+    body = "TESTAR LITT. Vädret i Umeå:\n\n" + "\n".join(msg_body_lines)
     msg = EmailMessage()
     msg.set_content(body)
-    msg["Subject"] = "Frostvarning"
+    msg["Subject"] = "FrostvarningTEST"
     msg["From"] = EMAIL_ADDRESS
     msg["To"] = ", ".join(RECIPIENTS)
     # Skicka via SMTP SSL
