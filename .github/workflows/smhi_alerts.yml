@@ -9,12 +9,12 @@ on:
 
 jobs:
   notify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
 
       - name: Restore alert history
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .last_alert
           key: last-alert-v1
