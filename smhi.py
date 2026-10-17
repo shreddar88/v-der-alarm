@@ -31,7 +31,7 @@ TO_EMAIL = os.getenv("TO_EMAIL")
 LAST_ALERT_FILE = pathlib.Path(".last_alert")
 
 #Build SMHI point-forecast URL for the configured lat/lon
-url = f"https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/{LON}/lat/{LAT}/data.json"
+url = f"https://opendata-download-metfcst.smhi.se/api/category/snow1g/version/1/geotype/point/lon/{LON}/lat/{LAT}/data.json"
 res = requests.get(url)                                     #Send GET request to SMHI
 res.raise_for_status()                                      #check the HTTP response status.
 data = res.json()                                           #Parse response body as JSON
@@ -43,7 +43,7 @@ alerts_by_date_time = defaultdict(lambda: defaultdict(list))
 
 #Iterate over forecast time series from SMHI
 for period in data.get("timeSeries", []):
-    time_utc = datetime.fromisoformat(period["validTime"].replace("Z", "+00:00"))
+    time_utc = datetime.fromisoformat(period["time"].replace("Z", "+00:00"))
     if not (now_utc < time_utc <= end_time):
         continue
 # Convert UTC time to local zone for nicer display    
@@ -54,9 +54,14 @@ for period in data.get("timeSeries", []):
 # - "t" is temperature (°C)
 # - "pcat" is precipitation category (1=snow, 2=mixed, 3=rain, 4=drizzle, ...)
 # - "pmean" is precipitation rate (mm/h)
-    t = next(p["values"][0] for p in period["parameters"] if p["name"] == "t")
-    pcat = next(p["values"][0] for p in period["parameters"] if p["name"] == "pcat")
-    pmean = next(p["values"][0] for p in period["parameters"] if p["name"] == "pmean")
+    weather = period["data"]
+    t = weather.get("air_temperature")
+    pcat = weather.get("predominant_precipitation_type_at_surface")
+    pmean = weather.get("precipitation_amount_mean")
+
+# SMHI använder 9999 för saknade värden
+if any(v is None or v == 9999 for v in (t, pcat, pmean)):
+    continue
     
     # För debug - Kommentera bort eller ta bort när du är klar!
     # print(time_local.isoformat(), f"t={t}", f"pmean={pmean}", f"pcat={pcat}")
