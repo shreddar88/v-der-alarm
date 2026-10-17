@@ -1,133 +1,151 @@
-import os
-import smtplib
-import hashlib
-import pathlib
-import requests
-from collections import defaultdict
-from email.message import EmailMessage
-from datetime import datetime, timedelta, timezone
+"""Väderlarm för Malmö via SMHI SNOW1gv1."""
 
-#Config/Env vars
-#LAT = 63.593792
-#LON = 20.024406
-#Malmö
+import hashlib
+import os
+import pathlib
+import smtplib
+from collections import defaultdict
+from datetime import datetime, timedelta, timezone
+from email.message import EmailMessage
+from zoneinfo import ZoneInfo
+
+import requests
+
+# Koordinaterna för platsen som väderprognosen gäller.
 LAT = 55.593792
 LON = 13.024406
-#Tresholds
-REGN_THRESHOLD = 0.0                                        # mm/h threshold for relevant precipitation (snow, mixed, freezing rain)
-ALERT_HOURS = 12                                            # forecast window
+# Hur långt fram i tiden vi söker efter vädervarningar.
+ALERT_HOURS = 12
+PRECIP_THRESHOLD = 0.0  # mm per prognosintervall
+FROST_TEMP_THRESHOLD = 0.0
+LOCAL_TZ = ZoneInfo("Europe/Stockholm")
 
-# Tröskelvärden för frost och underkylt regn
-FROST_TEMP_THRESHOLD = 0.0                                  # °C, vid eller under triggar frostvarning
-FREEZING_RAIN_TEMP_LOWER = -2.0                             # °C, nedre gräns för temperatur vid underkylt regn
-FREEZING_RAIN_TEMP_UPPER = 2.0                              # °C, övre gräns för temperatur vid underkylt regn
-
-#Email
+# Inställningar för att skicka varningsmejl via Gmail.
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 465
-EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
-TO_EMAIL = os.getenv("TO_EMAIL")
 LAST_ALERT_FILE = pathlib.Path(".last_alert")
 
-#Build SMHI point-forecast URL for the configured lat/lon
-url = f"https://opendata-download-metfcst.smhi.se/api/category/snow1g/version/1/geotype/point/lon/{LON}/lat/{LAT}/data.json"
-res = requests.get(url)                                     #Send GET request to SMHI
-res.raise_for_status()                                      #check the HTTP response status.
-data = res.json()                                           #Parse response body as JSON
-now_utc = datetime.now(timezone.utc)                        #Current UTC time
-end_time = now_utc + timedelta(hours=ALERT_HOURS)           #end of the lookahead window
+# Adress till SMHI:s prognostjänst.
+API_URL = (
+    "https://opendata-download-metfcst.smhi.se/api/category/snow1g/"
+    f"version/1/geotype/point/lon/{LON}/lat/{LAT}/data.json"
+)
 
-# Datastruktur för att gruppera alerts per datum OCH tid.
-alerts_by_date_time = defaultdict(lambda: defaultdict(list))
 
-#Iterate over forecast time series from SMHI
-for period in data.get("timeSeries", []):
-    time_utc = datetime.fromisoformat(period["time"].replace("Z", "+00:00"))
-    if not (now_utc < time_utc <= end_time):
-        continue
-# Convert UTC time to local zone for nicer display    
-    time_local = time_utc.astimezone()
-    date_str = time_local.strftime("%Y-%m-%d")
-    time_str = time_local.strftime("%H:%M")
-# Extract parameters from SMHI "parameters" array:
-# - "t" is temperature (°C)
-# - "pcat" is precipitation category (1=snow, 2=mixed, 3=rain, 4=drizzle, ...)
-# - "pmean" is precipitation rate (mm/h)
-    weather = period["data"]
-    t = weather.get("air_temperature")
-    pcat = weather.get("predominant_precipitation_type_at_surface")
-    pmean = weather.get("precipitation_amount_mean")
+# SMHI kan ange 9999 när ett mätvärde saknas.
+def usable(value):
+    return isinstance(value, (int, float)) and value != 9999
 
-# SMHI använder 9999 för saknade värden
-if any(v is None or v == 9999 for v in (t, pcat, pmean)):
-    continue
-    
-    # För debug - Kommentera bort eller ta bort när du är klar!
-    # print(time_local.isoformat(), f"t={t}", f"pmean={pmean}", f"pcat={pcat}")
 
-    # Bestäm om en nederbördsvärning ska triggas (baseras på mängd)
-    is_any_precip_occurring = pmean > REGN_THRESHOLD
-    
-    # 1. Frostvarning (om temperaturen är vid eller under noll)
-    if t <= FROST_TEMP_THRESHOLD:
-        alerts_by_date_time[date_str][time_str].append(f"🧊 Risk för frost ({t:.1f}°C)")
-    
-    # 2. Nederbördsvärningar (endast snö, blandat, eller underkylt regn)
-    if is_any_precip_occurring:
-        # 2a. Underkylt regn / Frysande nederbörd (om regn vid temperaturer nära fryspunkten)
-        if pcat in (3, 4) and (FREEZING_RAIN_TEMP_LOWER <= t <= FREEZING_RAIN_TEMP_UPPER):
-            alerts_by_date_time[date_str][time_str].append(f"🧊 Risk för underkylt regn/frysande nederbörd ({pmean:.1f} mm/h vid {t:.1f}°C)")
-        # 2b. Snö
-        elif pcat == 1:
-            alerts_by_date_time[date_str][time_str].append(f"❄️ Snö {pmean:.1f} mm/h")
-            # Logik för snow_total_mm och heavy_snow_start har tagits bort
-        # 2c. Blandad snö/regn (räknas också som en typ av snövarning)
-        elif pcat == 2:
-            alerts_by_date_time[date_str][time_str].append(f"❄️🌧️ Blandad snö/regn {pmean:.1f} mm/h")
+# Gå igenom prognosen och sammanställ varningar för de kommande timmarna.
+def build_alerts(forecast):
+    now = datetime.now(timezone.utc)
+    until = now + timedelta(hours=ALERT_HOURS)
+    alerts = defaultdict(lambda: defaultdict(list))
 
-# Platta till alerts för hashning
-flat_alerts = []
-# heavy_snow_msg hantering för hashning har tagits bort
-for date_key in sorted(alerts_by_date_time.keys()):
-    flat_alerts.append(date_key)
-    for time_key in sorted(alerts_by_date_time[date_key].keys()):
-        # Kombinera varningsbeskrivningar för samma tidpunkt till en sträng för hashning
-        combined_alerts_for_hashing = " och ".join(alerts_by_date_time[date_key][time_key])
-        flat_alerts.append(f"  {time_key}: {combined_alerts_for_hashing}")
+    # Undersök endast prognostillfällen inom den angivna tidsperioden.
+    for period in forecast.get("timeSeries", []):
+        valid_time = datetime.fromisoformat(period["time"].replace("Z", "+00:00"))
+        if not now < valid_time <= until:
+            continue
 
-# ---- Undvik upprepade varningar ---- # Om filen finns och den lagrade hashen matchar nuvarande hash -> inget har ändrats -> skippa
-alert_hash = hashlib.sha256("\n".join(flat_alerts).encode()).hexdigest()
-if LAST_ALERT_FILE.exists() and LAST_ALERT_FILE.read_text().strip() == alert_hash:
-    print("Inga nya varningar — skippar e-post.")
-    exit(0)
-LAST_ALERT_FILE.write_text(alert_hash)
+        values = period.get("data", {})
+        temp = values.get("air_temperature")
+        amount = values.get("precipitation_amount_mean")
+        precip_type = values.get("predominant_precipitation_type_at_surface")
 
-#Om det finns varningar, förbered och skicka e-post
-if alerts_by_date_time: # Kontrollera endast om det finns timvisa varningar
-    RECIPIENTS = [email.strip() for email in TO_EMAIL.split(",") if email.strip()]
-# Bygg e-postmeddelandets kropp
-    msg_body_lines = []
+        # Visa tidpunkterna i svensk lokal tid.
+        local = valid_time.astimezone(LOCAL_TZ)
+        date_key, time_key = local.strftime("%Y-%m-%d"), local.strftime("%H:%M")
+        messages = []
 
-    for date_key in sorted(alerts_by_date_time.keys()):
-        msg_body_lines.append(date_key)
-        for time_key in sorted(alerts_by_date_time[date_key].keys()):
-            # Slå ihop alla meddelanden för denna specifika tidpunkt med " och " emellan
-            combined_alerts = " och ".join(alerts_by_date_time[date_key][time_key])
-            msg_body_lines.append(f"  {time_key}: {combined_alerts}")
-        msg_body_lines.append("")  # tom rad efter varje dag
+        if usable(temp) and temp <= FROST_TEMP_THRESHOLD:
+            messages.append(f"🧊 Risk för frost ({temp:.1f} °C)")
 
-    #body = "Vädret i Malmö:\n\n" + "\n".join(msg_body_lines)
-    body = "Vädret i Malmö:\n\n" + "\n".join(msg_body_lines)
-    msg = EmailMessage()
-    msg.set_content(body)
-    msg["Subject"] = "Frostvarning"
-    msg["From"] = EMAIL_ADDRESS
-    msg["To"] = ", ".join(RECIPIENTS)
-    # Skicka via SMTP SSL
-    with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as smtp:
-        smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-        smtp.send_message(msg)
-    print("Varning skickad:\n", body)
-else:
-    print("Inga varningar under nästa prognosperiod.")
+        if usable(amount) and amount > PRECIP_THRESHOLD and usable(precip_type):
+            # SNOW1gv1 använder andra kategorier än det gamla PMP3gv2.
+            # 1=regn, 2=blandad nederbörd, 3=underkylt regn,
+            # 5=snö, 6=underkyld blandad nederbörd, 11=duggregn.
+            # Mängden är mm vattenekvivalent under prognosintervallet.
+            start_raw = period.get("intervalParametersStartTime")
+            duration = "prognosintervallet"
+            if start_raw:
+                start = datetime.fromisoformat(start_raw.replace("Z", "+00:00"))
+                hours = (valid_time - start).total_seconds() / 3600
+                if hours > 0:
+                    duration = f"{hours:g} h"
+            quantity = f"{amount:.1f} mm/{duration}"
+
+            if precip_type == 3:
+                messages.append(f"🧊 Underkylt regn ({quantity})")
+            elif precip_type == 6:
+                messages.append(f"🧊❄️ Underkyld blandad nederbörd ({quantity})")
+            elif precip_type == 5:
+                messages.append(f"❄️ Snö ({quantity} vattenekvivalent)")
+            elif precip_type == 2:
+                messages.append(f"❄️🌧️ Snöblandat regn ({quantity})")
+            elif precip_type in (1, 11) and usable(temp) and -2 <= temp <= 2:
+                messages.append(
+                    f"⚠️ Regn nära fryspunkten ({quantity}, {temp:.1f} °C)"
+                )
+
+        if messages:
+            alerts[date_key][time_key].extend(messages)
+
+    # Sortera varningarna efter datum och klockslag för mejlet.
+    lines = []
+    for date_key in sorted(alerts):
+        lines.append(date_key)
+        for time_key in sorted(alerts[date_key]):
+            lines.append(f"  {time_key}: {' och '.join(alerts[date_key][time_key])}")
+        lines.append("")
+    return "\n".join(lines).strip()
+
+
+# Hämta prognosen och skicka mejl när nya varningar finns.
+def main():
+    print(f"Hämtar prognos från SMHI: {API_URL}")
+    response = requests.get(API_URL, timeout=30)
+    response.raise_for_status()
+    forecast = response.json()
+    if not forecast.get("timeSeries"):
+        raise ValueError("SMHI returnerade ingen prognosserie")
+
+    alert_text = build_alerts(forecast)
+    last_hash = LAST_ALERT_FILE.read_text().strip() if LAST_ALERT_FILE.exists() else None
+    if not alert_text:
+        print("Inga varningar under de kommande 12 timmarna.")
+        LAST_ALERT_FILE.write_text("")
+        return
+
+    # Jämför med föregående varning för att undvika identiska mejl.
+    alert_hash = hashlib.sha256(alert_text.encode("utf-8")).hexdigest()
+    if alert_hash == last_hash:
+        print("Oförändrad prognos, skickar inget nytt mejl.")
+        return
+
+    # Läs e-postuppgifterna från miljövariabler/GitHub Secrets.
+    sender = os.getenv("EMAIL_ADDRESS")
+    password = os.getenv("EMAIL_PASSWORD")
+    recipients_raw = os.getenv("TO_EMAIL", "")
+    recipients = [address.strip() for address in recipients_raw.split(",") if address.strip()]
+    if not sender or not password or not recipients:
+        raise ValueError("EMAIL_ADDRESS, EMAIL_PASSWORD eller TO_EMAIL saknas i GitHub Secrets")
+
+    message = EmailMessage()
+    message["Subject"] = "Vädervarning – Malmö"
+    message["From"] = sender
+    message["To"] = ", ".join(recipients)
+    message.set_content("Vädervarningar för Malmö, kommande 12 timmar:\n\n" + alert_text)
+
+    with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, timeout=30) as smtp:
+        smtp.login(sender, password)
+        smtp.send_message(message)
+
+    # Spara först när mejlet verkligen har skickats.
+    LAST_ALERT_FILE.write_text(alert_hash)
+    print("Mejl skickat:\n" + alert_text)
+
+
+if __name__ == "__main__":
+    main()
