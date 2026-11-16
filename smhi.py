@@ -1,7 +1,5 @@
 """Väderlarm för Malmö via SMHI SNOW1gv1."""
-
 import hashlib
-import argparse
 import os
 import pathlib
 import smtplib
@@ -9,7 +7,6 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 from zoneinfo import ZoneInfo
-
 import requests
 
 # Koordinaterna för platsen som väderprognosen gäller.
@@ -18,10 +15,7 @@ LON = 13.024406
 # Hur långt fram i tiden vi söker efter vädervarningar.
 ALERT_HOURS = 12
 PRECIP_THRESHOLD = 0.0  # mm per prognosintervall
-
-#FROST_TEMP_THRESHOLD = 0.0
-FROST_TEMP_THRESHOLD = 10.0
-
+FROST_TEMP_THRESHOLD = 0.0
 LOCAL_TZ = ZoneInfo("Europe/Stockholm")
 
 # Inställningar för att skicka varningsmejl via Gmail.
@@ -34,7 +28,6 @@ API_URL = (
     "https://opendata-download-metfcst.smhi.se/api/category/snow1g/"
     f"version/1/geotype/point/lon/{LON}/lat/{LAT}/data.json"
 )
-
 
 # SMHI kan ange 9999 när ett mätvärde saknas.
 def usable(value):
@@ -63,10 +56,8 @@ def build_alerts(forecast):
         date_key, time_key = local.strftime("%Y-%m-%d"), local.strftime("%H:%M")
         messages = []
 
-        #if usable(temp) and temp <= FROST_TEMP_THRESHOLD:
-         #   messages.append(f"🧊 Risk för frost ({temp:.1f} °C)")
-        if usable(temp) and temp < FROST_TEMP_THRESHOLD:
-            messages.append(f"🧪 TEST: Temperatur under 10 °C ({temp:.1f} °C)")
+        if usable(temp) and temp <= FROST_TEMP_THRESHOLD:
+            messages.append(f"🧊 Risk för frost ({temp:.1f} °C)")
 
         if usable(amount) and amount > PRECIP_THRESHOLD and usable(precip_type):
             # SNOW1gv1 använder andra kategorier än det gamla PMP3gv2.
@@ -140,16 +131,13 @@ def main():
 
     message = EmailMessage()
     
-   # message["Subject"] = "Vädervarning – Malmö"
-    message["Subject"] = "TEST – Väderlarm Malmö"
+    message["Subject"] = "Vädervarning – Malmö"
+
     
     message["From"] = sender
     message["To"] = ", ".join(recipients)
     
-    #message.set_content("Vädervarningar för Malmö, kommande 12 timmar:\n\n" + alert_text)
-    message.set_content("TESTMEJL!\n\n" "Testar temperaturgränsen under 10 °C.\n\n"
-    + alert_text
-)
+    message.set_content("Vädervarningar för Malmö, kommande 12 timmar:\n\n" + alert_text)
 
     with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, timeout=30) as smtp:
         smtp.login(sender, password)
@@ -157,7 +145,7 @@ def main():
 
     # Spara först när mejlet verkligen har skickats.
     
-    #LAST_ALERT_FILE.write_text(alert_hash)
+    LAST_ALERT_FILE.write_text(alert_hash)
     print("Mejl skickat:\n" + alert_text)
 
 
