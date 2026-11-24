@@ -2,9 +2,8 @@ name: Snow Notifier
 
 on:
   schedule:
-    - cron: "0 5 * * *"   # 06:00 SE winter (UTC+1)
-    - cron: "0 11 * * *"  # 12:00 SE winter (UTC+1)
-    - cron: "0 17 * * *"  # 18:00 SE winter (UTC+1)
+    - cron: "17 6,12,18 * * *"
+      timezone: "Europe/Stockholm"
   workflow_dispatch:
 
 jobs:
@@ -17,7 +16,9 @@ jobs:
         uses: actions/cache@v5
         with:
           path: .last_alert
-          key: last-alert-v1
+          key: last-alert-${{ github.run_id }}
+          restore-keys: |
+            last-alert-
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -33,9 +34,3 @@ jobs:
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           TO_EMAIL: ${{ secrets.TO_EMAIL }}
         run: python smhi.py
-
-      - name: Save alert history
-        uses: actions/cache@v5
-        with:
-          path: .last_alert
-          key: last-alert-v1
